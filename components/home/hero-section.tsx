@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { useStore } from "@/lib/store";
 import { RoomFilters } from "@/components/room-filters";
 import { ImageCarousel } from "@/components/image-carousel";
 import { useRouter } from "next/navigation";
@@ -30,8 +29,8 @@ export function HeroSection() {
         aspectRatio="auto"
       />
 
-      <div className="container px-4 md:px-6 relative z-10">
-        <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
+      <div className="container px-4 md:px-14 relative z-10">
+        <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-6 xl:grid-cols-[1fr_600px]">
           <div className="flex flex-col justify-center space-y-4 bg-background/80 backdrop-blur-sm p-6 rounded-lg">
             <div className="space-y-2">
               <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
@@ -54,7 +53,7 @@ export function HeroSection() {
             </div>
           </div>
           <div className="flex items-center justify-center">
-            <div className="w-full max-w-md space-y-2 bg-background p-4 rounded-lg shadow-lg">
+            <div className="w-full max-w-2xl space-y-2 bg-background p-4 rounded-lg shadow-lg">
               <div className="text-xl font-bold mb-4">
                 Find Your Perfect Room
               </div>
