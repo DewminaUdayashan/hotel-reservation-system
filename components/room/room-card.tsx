@@ -14,6 +14,9 @@ import { Button } from "../ui/button";
 import Image from "next/image";
 import { useRoomTypeById } from "@/hooks/rooms";
 import { getFeatureIcon } from "./feature-icon";
+import { useRouter } from "next/navigation";
+import { RoomTypeBadge } from "./room-type-badge";
+import { ImageCarousel } from "../image-carousel";
 
 type Props = {
   room: Room;
@@ -21,20 +24,21 @@ type Props = {
 
 export const RoomCard = ({ room }: Props) => {
   const { data: roomType } = useRoomTypeById(room.type);
+  const router = useRouter();
   return (
-    <Card key={room.id} className="overflow-hidden">
+    <Card
+      key={room.id}
+      className="overflow-hidden hover:shadow-sm hover:shadow-white transition-shadow duration-300 ease-in-out"
+    >
       <div className="relative h-48 w-full">
         <Image
           src={room.images?.[0]}
           alt={room.name || "Room"}
           fill
-          className="object-cover"
+          className="object-cover transition-transform duration-300 ease-in-out hover:scale-105"
         />
-        {roomType?.isResidential && (
-          <Badge className="absolute top-2 right-2 bg-primary">
-            Residential
-          </Badge>
-        )}
+
+        <RoomTypeBadge type={roomType?.name ?? ""} />
         {room.status !== "available" && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
             <Badge variant="destructive" className="text-lg">
@@ -78,19 +82,23 @@ export const RoomCard = ({ room }: Props) => {
         </div>
       </CardContent>
       <CardFooter>
-        <Link href={`/rooms/${room.id}`} className="w-full">
-          <Button variant="outline" className="w-full">
-            View Details
-          </Button>
-        </Link>
-        <Link
-          href={`/reservation/new?roomId=${room.id}`}
-          className="w-full ml-2"
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => {
+            router.push(`/rooms/${room.id}`);
+          }}
         >
-          <Button className="w-full" disabled={room.status !== "available"}>
-            Book Now
-          </Button>
-        </Link>
+          View Details
+        </Button>
+
+        <Button
+          className="w-full ml-2"
+          disabled={room.status !== "available"}
+          onClick={() => router.push(`/reservation/new?roomId=${room.id}`)}
+        >
+          Book Now
+        </Button>
       </CardFooter>
     </Card>
   );

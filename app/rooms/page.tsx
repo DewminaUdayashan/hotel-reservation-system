@@ -7,11 +7,16 @@ import { RoomFilters } from "@/components/room-filters";
 import { useStore } from "@/lib/store";
 import { rooms } from "@/lib/data";
 import { RoomCard } from "@/components/room/room-card";
+import { useAllRooms } from "@/hooks/rooms";
 
 export default function RoomsPage() {
   const router = useRouter();
   const filters = useStore((state) => state.filters);
-  const filteredRooms = rooms;
+
+  const { data: rooms } = useAllRooms({
+    checkIn: filters.checkIn,
+    checkOut: filters.checkOut,
+  });
 
   return (
     <div className="container mx-auto py-10 px-4">
@@ -34,13 +39,13 @@ export default function RoomsPage() {
 
         {/* Room Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredRooms.map((room) => (
+          {rooms?.map((room) => (
             <RoomCard key={room.id} room={room} />
           ))}
         </div>
 
         {/* Empty State */}
-        {filteredRooms.length === 0 && (
+        {rooms?.length === 0 && (
           <div className="text-center py-12">
             <h3 className="text-xl font-semibold mb-2">
               No rooms match your criteria

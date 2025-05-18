@@ -128,13 +128,75 @@ const useAreAllRoomsUnavailable = ({
   return result;
 };
 
-const useAllRooms = () => {
-  return useQuery<Room[]>({
-    queryKey: [queryKeys.rooms],
-    queryFn: async () => {
-      // Simulate async fetch
-      await delay(300);
-      return rooms;
+type UseAllRoomsProps = {
+  roomType?: number;
+  checkIn?: Date;
+  checkOut?: Date;
+  guests?: number;
+  priceRange?: number[];
+};
+
+const useAllRooms = ({
+  roomType,
+  guests,
+  checkIn,
+  checkOut,
+  priceRange,
+}: UseAllRoomsProps) => {
+  const { data: reservations } = useReservations();
+
+  return useQuery({
+    queryKey: [
+      queryKeys.rooms,
+      roomType,
+      checkIn?.toISOString(),
+      checkOut?.toISOString(),
+      guests,
+      priceRange,
+    ],
+    queryFn: () => {
+      let filteredRooms = rooms;
+      if (roomType) {
+        filteredRooms = filteredRooms.filter((room) => room.type === roomType);
+      }
+
+      if (checkIn && checkOut) {
+        filteredRooms = filteredRooms.filter((room) => {
+          const isReserved = reservations?.some((res) => {
+            if (res.roomId !== room.id) return false;
+            const resCheckIn = new Date(res.checkIn);
+            const resCheckOut = new Date(res.checkOut);
+            return isDateRangeOverlapping(
+              checkIn,
+              checkOut,
+              resCheckIn,
+              resCheckOut
+            );
+          });
+          return !isReserved && room.status === "available";
+        });
+      }
+
+      if (guests) {
+        filteredRooms = filteredRooms.filter((room) => {
+          const roomTypeDetails = roomTypes.find((rt) => rt.id === room.type);
+          if (!roomTypeDetails) return false;
+          return roomTypeDetails.capacity >= guests;
+        });
+      }
+
+      if (priceRange) {
+        filteredRooms = filteredRooms.filter((room) => {
+          const roomTypeDetails = roomTypes.find((rt) => rt.id === room.type);
+          if (!roomTypeDetails) return false;
+          return (
+            roomTypeDetails.price >= priceRange[0] &&
+            roomTypeDetails.price <= priceRange[1]
+          );
+        });
+      }
+
+      return filteredRooms;
     },
   });
 };

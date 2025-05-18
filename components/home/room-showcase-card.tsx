@@ -41,13 +41,16 @@ export const RoomTypeShowcaseCard = ({ room }: RoomShowcaseCardProps) => {
   const isUnavailable = !rooms || rooms?.length === 0;
 
   return (
-    <Card key={room.id} className="overflow-hidden">
+    <Card
+      key={room.id}
+      className="overflow-hidden hover:shadow-sm hover:shadow-white transition-shadow duration-300 ease-in-out"
+    >
       <div className="relative h-48 w-full">
         <Image
           src={room.images?.[0] || "/placeholder.svg"}
           alt={room.name}
           fill
-          className="object-cover"
+          className="object-cover transition-transform duration-300 ease-in-out hover:scale-105"
         />
         {room?.isResidential && (
           <Badge className="absolute top-2 right-2 bg-primary">
