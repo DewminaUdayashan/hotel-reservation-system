@@ -1,12 +1,13 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { roomTypes, rooms, reservations as mockReservations } from "./data";
+import { RoomType } from "./types/room";
 
 // Define types
 export type RoomFilter = {
   checkIn: Date | undefined;
   checkOut: Date | undefined;
-  roomType: string | undefined;
+  roomType: RoomType | undefined;
   guests: string | undefined;
 };
 
@@ -63,14 +64,14 @@ type StoreState = {
 
   // Room availability
   checkRoomAvailability: (
-    roomType: string,
+    roomType: number,
     checkIn: Date,
     checkOut: Date
   ) => boolean;
   getAvailableRooms: (
     checkIn: Date,
     checkOut: Date,
-    roomType?: string
+    roomType?: number
   ) => any[];
 
   // Initialize with mock data
@@ -159,7 +160,7 @@ export const useStore = create<StoreState>()(
 
       // Room availability
       checkRoomAvailability: (
-        roomType: string,
+        roomType: number,
         checkIn: Date,
         checkOut: Date
       ) => {
@@ -200,7 +201,7 @@ export const useStore = create<StoreState>()(
         return false;
       },
 
-      getAvailableRooms: (checkIn: Date, checkOut: Date, roomType?: string) => {
+      getAvailableRooms: (checkIn: Date, checkOut: Date, roomType?: number) => {
         const { reservations } = get();
 
         // Filter rooms by type if specified
@@ -265,7 +266,7 @@ export const useStore = create<StoreState>()(
             roomNumber: res.roomId.toString(),
           }));
 
-          set({ reservations: formattedReservations });
+          // set({ reservations: formattedReservations });
         }
       },
     }),
@@ -287,7 +288,7 @@ export const filterRooms = (filters: RoomFilter) => {
   // Filter by room type
   if (filters.roomType) {
     filteredRooms = filteredRooms.filter(
-      (room) => room.type === filters.roomType
+      (room) => room.type === filters.roomType?.id
     );
   }
 

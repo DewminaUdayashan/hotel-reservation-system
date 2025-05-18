@@ -22,6 +22,8 @@ import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
 import { Badge } from "@/components/ui/badge";
 import { roomTypes } from "@/lib/data";
+import { useRoomTypes } from "@/hooks/rooms";
+import { DateRangePicker } from "./shared/date-range-picker";
 
 type RoomFiltersProps = {
   onFilter?: () => void;
@@ -36,6 +38,7 @@ export function RoomFilters({
   showPriceFilter = true,
   compact = false,
 }: RoomFiltersProps) {
+  const { data: roomTypes } = useRoomTypes();
   const filters = useStore((state) => state.filters);
   const setFilters = useStore((state) => state.setFilters);
   const clearFilters = useStore((state) => state.clearFilters);
@@ -83,7 +86,8 @@ export function RoomFilters({
 
   // Handle room type selection
   const handleRoomTypeChange = (value: string) => {
-    setFilters({ roomType: value });
+    const type = roomTypes?.find((t) => t.id === Number.parseInt(value));
+    setFilters({ roomType: type });
   };
 
   // Handle guests selection
@@ -122,55 +126,31 @@ export function RoomFilters({
         {/* Date Range */}
         <div className={cn("flex-1", compact ? "md:max-w-[240px]" : "")}>
           <div className="font-medium mb-2">Stay Dates</div>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant={"outline"}
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !dateRange.from && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateRange.from ? (
-                  dateRange.to ? (
-                    <>
-                      {format(dateRange.from, "MMM d, yyyy")} -{" "}
-                      {format(dateRange.to, "MMM d, yyyy")}
-                    </>
-                  ) : (
-                    format(dateRange.from, "MMM d, yyyy")
-                  )
-                ) : (
-                  <span>Select dates</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                initialFocus
-                mode="range"
-                defaultMonth={dateRange.from}
-                selected={dateRange}
-                onSelect={handleDateSelect}
-                numberOfMonths={2}
-                disabled={(date) => date < new Date()}
-              />
-            </PopoverContent>
-          </Popover>
+          <DateRangePicker
+            dateRange={dateRange}
+            onSelect={(range) =>
+              handleDateSelect({
+                from: range.from,
+                to: range.to,
+              })
+            }
+          />
         </div>
 
         {/* Room Type */}
         <div className={cn("flex-1", compact ? "md:max-w-[200px]" : "")}>
           <div className="font-medium mb-2">Room Type</div>
-          <Select value={filters.roomType} onValueChange={handleRoomTypeChange}>
+          <Select
+            value={filters.roomType?.id?.toString()}
+            onValueChange={handleRoomTypeChange}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Any type" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="any">Any type</SelectItem>
-              {roomTypes.map((type) => (
-                <SelectItem key={type.id} value={type.id}>
+              {roomTypes?.map((type) => (
+                <SelectItem key={type.id} value={type.id.toString()}>
                   {type.name}
                 </SelectItem>
               ))}
@@ -237,8 +217,7 @@ export function RoomFilters({
           <span className="text-sm text-muted-foreground">Active filters:</span>
           {filters.roomType && (
             <Badge variant="secondary" className="flex items-center gap-1">
-              {roomTypes.find((t) => t.id === filters.roomType)?.name ||
-                filters.roomType}
+              {roomTypes?.find((t) => t.id === filters!.roomType!.id)?.name}
               <Button
                 variant="ghost"
                 size="icon"

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { format } from "date-fns";
 import {
   ArrowLeft,
   Calendar,
@@ -30,61 +29,33 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageCarousel } from "@/components/image-carousel";
 import { useStore } from "@/lib/store";
 import { roomTypes, rooms } from "@/lib/data";
-import { AuthDialog } from "@/components/auth-dialog";
-import {
-  useAreAllRoomsUnavailable,
-  useRoomById,
-  useRoomTypeById,
-} from "@/hooks/rooms";
+import { useAvailableRoomsByType, useRoomTypeById } from "@/hooks/rooms";
 import { getFeatureIcon } from "@/components/room/feature-icon";
-import { DateRangePicker } from "@/components/shared/date-range-picker";
 
-export default function RoomDetailsPage() {
+export default function RoomTypeDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const roomId = Number.parseInt(params.id as string);
+  const roomTypeId = Number.parseInt(params.id as string, 10);
 
-  const { data: room, isLoading } = useRoomById(roomId);
-  const { data: roomType, isLoading: isRoomTypeLoading } = useRoomTypeById(
-    room?.type
-  );
-  const isUnavailable = useAreAllRoomsUnavailable({
-    roomType: room?.type,
-    checkIn: new Date(),
-    checkOut: new Date(),
+  const { data: roomType, isLoading } = useRoomTypeById(roomTypeId);
+
+  const { data: rooms } = useAvailableRoomsByType({
+    roomType: roomTypeId,
+    availableOnly: true,
   });
 
-  const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const availableRoomsCount = rooms?.length || 0;
 
-  const filters = useStore((state) => state.filters);
-  const checkIn = filters.checkIn;
-  const checkOut = filters.checkOut;
-  const user = useStore((state) => state.user);
+  const setFilters = useStore((state) => state.setFilters);
 
-  const handleBookNow = () => {
-    if (!user.isLoggedIn) {
-      setShowAuthDialog(true);
-    } else {
-      router.push(`/reservation/new?roomId=${roomId}`);
-    }
+  const handleViewAvailableRooms = () => {
+    // Update filters with the selected room type
+    // setFilters({ roomType: roomType });
+    // Navigate to rooms page
+    router.push("/rooms");
   };
 
-  const handleAuthSuccess = () => {
-    router.push(`/reservation/new?roomId=${roomId}`);
-  };
-
-  // Calculate nights and total price if dates are selected
-  const nights =
-    filters.checkIn && filters.checkOut
-      ? Math.ceil(
-          (filters.checkOut.getTime() - filters.checkIn.getTime()) /
-            (1000 * 60 * 60 * 24)
-        )
-      : 0;
-
-  const totalPrice = roomType && nights ? roomType?.price * nights : 0;
-
-  if (isLoading || isRoomTypeLoading || !room || !roomType) {
+  if (isLoading || !roomType) {
     return (
       <div className="container mx-auto py-10 px-4">
         <div className="flex items-center justify-center h-[60vh]">
@@ -114,19 +85,14 @@ export default function RoomDetailsPage() {
           Back
         </Button>
         <div>
-          <h1 className="text-3xl font-bold">{room.name}</h1>
+          <h1 className="text-3xl font-bold">{roomType.name}</h1>
           <div className="flex items-center mt-1">
             <Users className="h-4 w-4 text-muted-foreground mr-1" />
             <span className="text-sm text-muted-foreground">
-              Up to {room.capacity} guests
+              Up to {roomType.capacity} guests
             </span>
-            {room.isResidential && (
+            {roomType.isResidential && (
               <Badge className="ml-2 bg-primary">Residential</Badge>
-            )}
-            {isUnavailable && (
-              <Badge variant="destructive" className="ml-2">
-                Fully Booked
-              </Badge>
             )}
           </div>
         </div>
@@ -136,7 +102,7 @@ export default function RoomDetailsPage() {
         <div className="lg:col-span-2 space-y-8">
           {/* Image Gallery */}
           <ImageCarousel
-            images={room.images}
+            images={roomType.images}
             aspectRatio="video"
             className="rounded-lg overflow-hidden"
           />
@@ -154,34 +120,34 @@ export default function RoomDetailsPage() {
                 <h2 className="text-2xl font-semibold mb-2">
                   Room Description
                 </h2>
-                <p className="text-muted-foreground">{room.description}</p>
+                <p className="text-muted-foreground">{roomType.description}</p>
 
                 <div className="mt-4 grid grid-cols-2 gap-4">
                   <div>
                     <h3 className="font-medium">Room Size</h3>
                     <p className="text-muted-foreground">
-                      {room.isResidential ? "45-60" : "30-40"} m²
+                      {roomType.isResidential ? "45-60" : "30-40"} m²
                     </p>
                   </div>
                   <div>
                     <h3 className="font-medium">Bed Type</h3>
-                    <p className="text-muted-foreground">{room.bedType}</p>
+                    <p className="text-muted-foreground">{roomType.bedType}</p>
                   </div>
                   <div>
                     <h3 className="font-medium">View</h3>
-                    <p className="text-muted-foreground">{room.view}</p>
+                    <p className="text-muted-foreground">{roomType.view}</p>
                   </div>
                   <div>
                     <h3 className="font-medium">Max Occupancy</h3>
                     <p className="text-muted-foreground">
-                      {room.capacity}{" "}
-                      {room.capacity === 1 ? "Person" : "People"}
+                      {roomType.capacity}{" "}
+                      {roomType.capacity === 1 ? "Person" : "People"}
                     </p>
                   </div>
                 </div>
               </div>
 
-              {room.isResidential && roomType && (
+              {roomType.isResidential && (
                 <div className="mt-6">
                   <h2 className="text-xl font-semibold mb-2">
                     Long-Term Stay Options
@@ -192,7 +158,9 @@ export default function RoomDetailsPage() {
                         <CardTitle className="text-lg">Nightly</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="text-2xl font-bold">${room.price}</div>
+                        <div className="text-2xl font-bold">
+                          ${roomType.price}
+                        </div>
                         <p className="text-sm text-muted-foreground">
                           Flexible stay
                         </p>
@@ -207,7 +175,7 @@ export default function RoomDetailsPage() {
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold">
-                          ${room.weeklyRate}
+                          ${roomType.weeklyRate}
                         </div>
                         <p className="text-sm text-muted-foreground">
                           ${Math.round(roomType.weeklyRate ?? 0 / 7)}/night
@@ -223,10 +191,10 @@ export default function RoomDetailsPage() {
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold">
-                          ${room.monthlyRate}
+                          ${roomType.monthlyRate}
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          ${Math.round(room.monthlyRate ?? 0 / 30)}/night
+                          ${Math.round(roomType.monthlyRate ?? 0 / 30)}/night
                         </p>
                       </CardContent>
                     </Card>
@@ -240,7 +208,7 @@ export default function RoomDetailsPage() {
                 <div>
                   <h3 className="text-lg font-semibold mb-3">Room Amenities</h3>
                   <ul className="space-y-2">
-                    {room.amenities?.map((amenity) => (
+                    {roomType.amenities?.map((amenity) => (
                       <li key={amenity} className="flex items-center">
                         {getFeatureIcon(amenity)}
                         <span className="ml-2">{amenity}</span>
@@ -320,10 +288,10 @@ export default function RoomDetailsPage() {
             </TabsContent>
           </Tabs>
 
-          {/* Similar Rooms */}
+          {/* Similar Room Types */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-semibold">Similar Rooms</h2>
+              <h2 className="text-2xl font-semibold">Similar Room Types</h2>
               <Link href="/rooms">
                 <Button variant="ghost" size="sm" className="gap-1">
                   View all rooms
@@ -334,38 +302,34 @@ export default function RoomDetailsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {roomTypes
-                .filter((rt) => rt.id !== room.type)
+                .filter((rt) => rt.id !== roomType.id)
                 .slice(0, 2)
-                .map((roomType) => (
+                .map((rt) => (
                   <Card
-                    key={roomType.id}
+                    key={rt.id}
                     className="flex flex-col md:flex-row overflow-hidden"
                   >
                     <div className="relative h-40 w-full md:w-1/3">
                       <ImageCarousel
-                        images={roomType.images}
+                        images={rt.images}
                         showControls={false}
                         showIndicators={false}
                         aspectRatio="square"
                       />
                     </div>
                     <div className="flex-1 p-4">
-                      <h3 className="font-semibold">{roomType.name}</h3>
+                      <h3 className="font-semibold">{rt.name}</h3>
                       <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                        {roomType.description}
+                        {rt.description}
                       </p>
                       <div className="flex items-center justify-between mt-auto">
                         <div className="text-lg font-semibold">
-                          ${roomType.price}
+                          ${rt.price}
                           <span className="text-sm font-normal text-muted-foreground">
                             /night
                           </span>
                         </div>
-                        <Link
-                          href={`/rooms/${
-                            rooms.find((r) => r.type === roomType.id)?.id || 1
-                          }`}
-                        >
+                        <Link href={`/room-types/${rt.id}`}>
                           <Button size="sm">View</Button>
                         </Link>
                       </div>
@@ -380,114 +344,57 @@ export default function RoomDetailsPage() {
         <div>
           <Card className="sticky top-4">
             <CardHeader>
-              <CardTitle>Book This Room</CardTitle>
+              <CardTitle>Book This Room Type</CardTitle>
               <CardDescription>
-                {isUnavailable
-                  ? "Secure your reservation now"
-                  : "This room is currently unavailable for the selected dates"}
+                {availableRoomsCount > 0
+                  ? `${availableRoomsCount} ${
+                      availableRoomsCount === 1 ? "room" : "rooms"
+                    } available`
+                  : "Currently no rooms available"}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="text-2xl font-bold">
-                ${room.price}
+                ${roomType.price}
                 <span className="text-sm font-normal text-muted-foreground">
                   {" "}
                   / night
                 </span>
               </div>
 
-              {/* Date Selection */}
-              {filters.checkIn && filters.checkOut ? (
-                <div className="space-y-2 bg-muted p-3 rounded-md">
-                  <div className="flex justify-between text-sm">
-                    <span>Check-in:</span>
-                    <span className="font-medium">
-                      {format(filters.checkIn, "EEE, MMM d, yyyy")}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Check-out:</span>
-                    <span className="font-medium">
-                      {format(filters.checkOut, "EEE, MMM d, yyyy")}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Length of stay:</span>
-                    <span className="font-medium">
-                      {nights} {nights === 1 ? "night" : "nights"}
-                    </span>
-                  </div>
-                  <Link
-                    href="/rooms"
-                    className="text-xs text-primary hover:underline block text-right"
-                  >
-                    Change dates
-                  </Link>
-                </div>
-              ) : (
-                <div className="bg-muted p-3 rounded-md text-center">
-                  <Calendar className="h-5 w-5 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm mb-2">No dates selected</p>
-                  <DateRangePicker
-                    dateRange={{
-                      from: filters.checkIn,
-                      to: filters.checkOut,
-                    }}
-                    onSelect={(range) => {
-                      useStore.setState({
-                        filters: {
-                          ...filters,
-                          checkIn: range.from,
-                          checkOut: range.to,
-                        },
-                      });
-                    }}
-                    popOverTrigger={
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full hover:bg-primary hover:text-primary-foreground"
-                      >
-                        Select dates
-                      </Button>
-                    }
-                  />
-                </div>
-              )}
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium">Room Features:</h3>
+                <ul className="space-y-1 text-sm">
+                  {roomType.amenities?.slice(0, 5).map((amenity) => (
+                    <li key={amenity} className="flex items-center">
+                      <Check className="h-3 w-3 text-green-500 mr-2" />
+                      {amenity}
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
               <Separator />
 
-              {/* Price Breakdown */}
-              {nights > 0 && (
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>
-                      ${room.price} x {nights}{" "}
-                      {nights === 1 ? "night" : "nights"}
-                    </span>
-                    <span>${roomType.price * nights}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Taxes & fees</span>
-                    <span>${Math.round(roomType.price * nights * 0.12)}</span>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between font-semibold">
-                    <span>Total</span>
-                    <span>${Math.round(roomType.price * nights * 1.12)}</span>
-                  </div>
-                </div>
-              )}
+              {/* CTA Buttons */}
+              <div className="space-y-3">
+                <Button
+                  className="w-full"
+                  size="lg"
+                  onClick={handleViewAvailableRooms}
+                >
+                  View Available Rooms
+                </Button>
 
-              {/* Book Now Button */}
-              <Button
-                className="w-full"
-                size="lg"
-                disabled={!isUnavailable || nights === 0}
-                onClick={handleBookNow}
-              >
-                {nights === 0 ? "Select dates to book" : "Book Now"}
-              </Button>
+                {/* <Link
+                  href={`/reservation/new?roomType=${roomType.id}`}
+                  className="block w-full"
+                >
+                  <Button variant="outline" className="w-full">
+                    Book Now
+                  </Button>
+                </Link> */}
+              </div>
 
               {/* Payment Info */}
               <div className="flex items-center text-xs text-muted-foreground justify-center">
@@ -498,12 +405,6 @@ export default function RoomDetailsPage() {
           </Card>
         </div>
       </div>
-
-      <AuthDialog
-        open={showAuthDialog}
-        onOpenChange={setShowAuthDialog}
-        onSuccess={handleAuthSuccess}
-      />
     </div>
   );
 }

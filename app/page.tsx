@@ -3,16 +3,16 @@ import Link from "next/link";
 import { Hotel, Search, User, Calendar, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HeroSection } from "@/components/home/hero-section";
-import { RoomShowcase } from "@/components/room-showcase";
+import { RoomShowcase } from "@/components/home/room-showcase";
 import { FeaturesSection } from "@/components/features-section";
 import { TestimonialsSection } from "@/components/testimonials-section";
 import { Header } from "@/components/home/header";
 
 export default function HomePage() {
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen min-w-full">
       <Header />
-      <main className="flex-1">
+      <main className="flex-1 w-full">
         <Suspense
           fallback={<div className="container mx-auto p-4">Loading...</div>}
         >

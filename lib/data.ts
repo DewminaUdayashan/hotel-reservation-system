@@ -1,20 +1,38 @@
+"use client";
+
 // This file contains mock data for the hotel reservation system
 
+import { Reservation } from "./types/reservation";
+import { Room, RoomType } from "./types/room";
+
 // Room Types
-export const roomTypes = [
+export const roomTypes: RoomType[] = [
   {
-    id: "standard",
+    id: 1,
     name: "Standard Room",
-    description: "Comfortable room with all the essential amenities for a pleasant stay.",
+    description:
+      "Comfortable room with all the essential amenities for a pleasant stay.",
     price: 120,
     capacity: 2,
-    amenities: ["Free WiFi", "TV", "Air Conditioning", "Private Bathroom", "Coffee Maker"],
-    images: ["/placeholder.svg?height=400&width=600"],
+    amenities: [
+      "Free WiFi",
+      "TV",
+      "Air Conditioning",
+      "Private Bathroom",
+      "Coffee Maker",
+    ],
+    images: [
+      "/images/room_types/standard-room.jpg",
+      "/images/room_types/standard-room-2.webp",
+    ],
+    bedType: "Queen",
+    view: "City",
   },
   {
-    id: "deluxe",
+    id: 2,
     name: "Deluxe Room",
-    description: "Spacious room with premium amenities and a beautiful city view.",
+    description:
+      "Spacious room with premium amenities and a beautiful city view.",
     price: 180,
     capacity: 2,
     amenities: [
@@ -26,12 +44,15 @@ export const roomTypes = [
       "Coffee Maker",
       "Work Desk",
     ],
-    images: ["/placeholder.svg?height=400&width=600"],
+    images: ["/images/room_types/deluxe-room.jpg.avif"],
+    bedType: "King",
+    view: "City or Partial Sea",
   },
   {
-    id: "executive",
+    id: 3,
     name: "Executive Suite",
-    description: "Elegant suite with separate living area and premium amenities.",
+    description:
+      "Elegant suite with separate living area and premium amenities.",
     price: 250,
     capacity: 3,
     amenities: [
@@ -44,12 +65,15 @@ export const roomTypes = [
       "Lounge Area",
       "Work Desk",
     ],
-    images: ["/placeholder.svg?height=400&width=600"],
+    images: ["/images/room_types/executive-suite.jpg"],
+    bedType: "King + Sofa Bed",
+    view: "Sea or Panoramic",
   },
   {
-    id: "residential",
+    id: 4,
     name: "Residential Suite",
-    description: "Long-term stay suite with kitchen and all the comforts of home.",
+    description:
+      "Long-term stay suite with kitchen and all the comforts of home.",
     price: 350,
     weeklyRate: 2100,
     monthlyRate: 7500,
@@ -64,25 +88,113 @@ export const roomTypes = [
       "Dining Area",
       "Work Desk",
     ],
-    images: ["/placeholder.svg?height=400&width=600"],
+    images: ["/images/room_types/residential-suite.jpg"],
     isResidential: true,
+    bedType: "2 Queens with Sofa",
+    view: "Panoramic, City or Sea",
   },
-]
+];
 
-// Rooms
-export const rooms = [
-  { id: 101, type: "standard", status: "available", floor: 1 },
-  { id: 102, type: "standard", status: "occupied", floor: 1 },
-  { id: 103, type: "standard", status: "reserved", floor: 1 },
-  { id: 104, type: "standard", status: "maintenance", floor: 1 },
-  { id: 201, type: "deluxe", status: "available", floor: 2 },
-  { id: 202, type: "deluxe", status: "occupied", floor: 2 },
-  { id: 203, type: "deluxe", status: "available", floor: 2 },
-  { id: 301, type: "executive", status: "available", floor: 3 },
-  { id: 302, type: "executive", status: "occupied", floor: 3 },
-  { id: 401, type: "residential", status: "available", floor: 4 },
-  { id: 402, type: "residential", status: "occupied", floor: 4 },
-]
+// Example dummy data for Room[]
+export const rooms: Room[] = [
+  {
+    id: 1,
+    name: "Standard Room 101",
+    description: "A cozy standard room with a queen bed and city view.",
+    images: [
+      "/images/room_types/standard-room.jpg",
+      "/images/room_types/standard-room-2.webp",
+    ],
+    status: "available",
+    type: 1,
+    bedType: "Queen",
+    view: "City",
+  },
+  {
+    id: 2,
+    name: "Deluxe Room 201",
+    description: "Spacious deluxe room with a king bed and balcony.",
+    images: [
+      "/images/room_types/standard-room.jpg",
+      "/images/room_types/standard-room-2.webp",
+    ],
+    status: "available",
+    type: 2,
+    bedType: "King",
+    view: "City",
+  },
+  {
+    id: 5,
+    name: "Deluxe Room 202",
+    description: "Spacious deluxe room with a king bed and balcony.",
+    images: [
+      "/images/room_types/standard-room.jpg",
+      "/images/room_types/standard-room-2.webp",
+    ],
+    status: "available",
+    type: 2,
+    bedType: "King",
+    view: "City",
+  },
+  {
+    id: 3,
+    name: "Executive Suite 301",
+    description: "Luxurious executive suite with living area and workspace.",
+    images: [
+      "/images/room_types/standard-room.jpg",
+      "/images/room_types/standard-room-2.webp",
+    ],
+    status: "available",
+    type: 3,
+    bedType: "King + Sofa Bed",
+    view: "Sea",
+  },
+  {
+    id: 4,
+    name: "Residential Suite 401",
+    description: "Premium residential suite with kitchen and two bedrooms.",
+    images: [
+      "/images/room_types/standard-room.jpg",
+      "/images/room_types/standard-room-2.webp",
+    ],
+    status: "maintenance",
+    type: 4,
+    bedType: "2 Queens",
+    view: "Sea",
+  },
+  {
+    id: 6,
+    name: "Residential Suite 422",
+    description: "Premium residential suite with kitchen and two bedrooms.",
+    images: [
+      "/images/room_types/standard-room.jpg",
+      "/images/room_types/standard-room-2.webp",
+    ],
+    status: "available",
+    type: 4,
+    bedType: "2 Queens",
+    view: "Panoramic",
+  },
+];
+
+// Reservations
+export const reservations: Reservation[] = [
+  {
+    id: 1,
+    customerId: 1,
+    roomId: 1,
+    checkIn: new Date("2025-05-18"),
+    checkOut: new Date("2025-05-19"),
+    guests: 2,
+    status: "checked-in",
+    paymentStatus: "pending",
+    paymentMethod: "credit-card",
+    totalAmount: 540,
+    additionalCharges: [],
+    specialRequests: "Late check-in, room with a view if possible.",
+    createdAt: new Date("2025-05-10"),
+  },
+];
 
 // Customers
 export const customers = [
@@ -124,77 +236,7 @@ export const customers = [
     creditCard: null,
     stayHistory: 0,
   },
-]
-
-// Reservations
-export const reservations = [
-  {
-    id: "RES1001",
-    customerId: "C1001",
-    roomId: 102,
-    checkIn: new Date("2023-06-15"),
-    checkOut: new Date("2023-06-18"),
-    guests: 2,
-    status: "checked-in",
-    paymentStatus: "pending",
-    paymentMethod: "credit-card",
-    totalAmount: 540,
-    additionalCharges: [
-      { id: 1, description: "Room Service", amount: 45, date: new Date("2023-06-16") },
-      { id: 2, description: "Restaurant", amount: 78, date: new Date("2023-06-17") },
-    ],
-    specialRequests: "Late check-in, room with a view if possible.",
-    createdAt: new Date("2023-05-20"),
-  },
-  {
-    id: "RES1002",
-    customerId: "C1002",
-    roomId: 203,
-    checkIn: new Date("2023-06-16"),
-    checkOut: new Date("2023-06-20"),
-    guests: 2,
-    status: "reserved",
-    paymentStatus: "paid",
-    paymentMethod: "credit-card",
-    totalAmount: 720,
-    additionalCharges: [],
-    specialRequests: "",
-    createdAt: new Date("2023-06-01"),
-  },
-  {
-    id: "RES1003",
-    customerId: "C1003",
-    roomId: 302,
-    checkIn: new Date("2023-06-14"),
-    checkOut: new Date("2023-06-17"),
-    guests: 3,
-    status: "checked-out",
-    paymentStatus: "paid",
-    paymentMethod: "cash",
-    totalAmount: 750,
-    additionalCharges: [{ id: 3, description: "Laundry", amount: 35, date: new Date("2023-06-15") }],
-    specialRequests: "Extra pillows",
-    createdAt: new Date("2023-06-10"),
-  },
-  {
-    id: "RES1004",
-    customerId: "C1001",
-    roomId: 402,
-    checkIn: new Date("2023-06-10"),
-    checkOut: new Date("2023-06-24"),
-    guests: 4,
-    status: "checked-in",
-    paymentStatus: "partial",
-    paymentMethod: "credit-card",
-    totalAmount: 4900,
-    additionalCharges: [
-      { id: 4, description: "Room Service", amount: 120, date: new Date("2023-06-12") },
-      { id: 5, description: "Restaurant", amount: 230, date: new Date("2023-06-14") },
-    ],
-    specialRequests: "Weekly cleaning service",
-    createdAt: new Date("2023-05-15"),
-  },
-]
+];
 
 // Travel Companies
 export const travelCompanies = [
@@ -236,7 +278,7 @@ export const travelCompanies = [
       },
     ],
   },
-]
+];
 
 // Reports
 export const reports = [
@@ -286,4 +328,4 @@ export const reports = [
       billedAmount: 720,
     },
   },
-]
+];
