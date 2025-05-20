@@ -1,21 +1,25 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Wifi, Coffee, Tv, Bath } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RoomFilters } from "@/components/room-filters";
 import { useStore } from "@/lib/store";
-import { rooms } from "@/lib/data";
 import { RoomCard } from "@/components/room/room-card";
-import { useAllRooms } from "@/hooks/rooms";
+import { useAllRooms } from "@/hooks/rooms/rooms";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function RoomsPage() {
   const router = useRouter();
   const filters = useStore((state) => state.filters);
 
-  const { data: rooms } = useAllRooms({
-    checkIn: filters.checkIn,
-    checkOut: filters.checkOut,
+  const { data: rooms, isLoading } = useAllRooms({
+    checkIn: filters.checkIn?.toISOString(),
+    checkOut: filters.checkOut?.toISOString(),
+    capacity: filters.capacity,
+    type: filters.roomType?.id,
+    maxPrice: filters.maxPrice,
+    minPrice: filters.minPrice,
   });
 
   return (
@@ -43,6 +47,14 @@ export default function RoomsPage() {
             <RoomCard key={room.id} room={room} />
           ))}
         </div>
+        {isLoading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Skeleton className="h-96 w-full bg-white/20" />
+            <Skeleton className="h-96 w-full bg-white/20" />
+            <Skeleton className="h-96 w-full bg-white/20" />
+            <Skeleton className="h-96 w-full bg-white/20" />
+          </div>
+        )}
 
         {/* Empty State */}
         {rooms?.length === 0 && (

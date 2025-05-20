@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
-import { CalendarIcon, Search, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Slider } from "@/components/ui/slider";
+import { cn } from "@/lib/utils";
+import { useStore } from "@/lib/store";
+import { Badge } from "@/components/ui/badge";
+import { useRoomTypes } from "@/hooks/rooms/rooms";
+import { DateRangePicker } from "./shared/date-range-picker";
 import {
   Select,
   SelectContent,
@@ -17,13 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
-import { cn } from "@/lib/utils";
-import { useStore } from "@/lib/store";
-import { Badge } from "@/components/ui/badge";
-import { roomTypes } from "@/lib/data";
-import { useRoomTypes } from "@/hooks/rooms";
-import { DateRangePicker } from "./shared/date-range-picker";
 
 type RoomFiltersProps = {
   onFilter?: () => void;
@@ -39,9 +32,11 @@ export function RoomFilters({
   compact = false,
 }: RoomFiltersProps) {
   const { data: roomTypes } = useRoomTypes();
+
   const filters = useStore((state) => state.filters);
   const setFilters = useStore((state) => state.setFilters);
   const clearFilters = useStore((state) => state.clearFilters);
+
   const [dateRange, setDateRange] = useState<{
     from: Date | undefined;
     to: Date | undefined;
@@ -50,70 +45,98 @@ export function RoomFilters({
     to: filters.checkOut,
   });
 
-  const [priceRange, setPriceRange] = useState<number[]>([100, 400]);
+  const [priceRange, setPriceRange] = useState<number[] | undefined>(
+    filters.minPrice !== undefined && filters.maxPrice !== undefined
+      ? [filters.minPrice, filters.maxPrice]
+      : undefined
+  );
+
+  const [localFilters, setLocalFilters] = useState({
+    roomType: filters.roomType,
+    capacity: filters.capacity,
+    checkIn: filters.checkIn,
+    checkOut: filters.checkOut,
+    minPrice: filters.minPrice,
+    maxPrice: filters.maxPrice,
+  });
+
   const [activeFilters, setActiveFilters] = useState(0);
 
-  // Update local state when global filters change
   useEffect(() => {
-    setDateRange({
-      from: filters.checkIn,
-      to: filters.checkOut,
-    });
-  }, [filters.checkIn, filters.checkOut]);
+    setActiveFilters(
+      [
+        localFilters.checkIn && localFilters.checkOut,
+        localFilters.roomType,
+        localFilters.capacity,
+        localFilters.minPrice !== undefined &&
+          localFilters.maxPrice !== undefined,
+      ].filter(Boolean).length
+    );
+  }, [localFilters]);
 
-  // Count active filters
-  useEffect(() => {
-    let count = 0;
-    if (filters.checkIn && filters.checkOut) count++;
-    if (filters.roomType) count++;
-    if (filters.guests) count++;
-    setActiveFilters(count);
-  }, [filters]);
-
-  // Handle date selection
   const handleDateSelect = (range: {
     from: Date | undefined;
     to: Date | undefined;
   }) => {
     setDateRange(range);
-    if (range.from && range.to) {
-      setFilters({
-        checkIn: range.from,
-        checkOut: range.to,
-      });
-    }
+    setLocalFilters((prev) => ({
+      ...prev,
+      checkIn: range.from,
+      checkOut: range.to,
+    }));
   };
 
-  // Handle room type selection
   const handleRoomTypeChange = (value: string) => {
     const type = roomTypes?.find((t) => t.id === Number.parseInt(value));
-    setFilters({ roomType: type });
+    setLocalFilters((prev) => ({
+      ...prev,
+      roomType: type,
+    }));
   };
 
-  // Handle guests selection
   const handleGuestsChange = (value: string) => {
-    setFilters({ guests: value });
+    const guests = value === "any" ? undefined : Number(value);
+    setLocalFilters((prev) => ({
+      ...prev,
+      capacity: guests,
+    }));
   };
 
-  // Handle price range change
   const handlePriceChange = (value: number[]) => {
     setPriceRange(value);
+    setLocalFilters((prev) => ({
+      ...prev,
+      minPrice: value[0],
+      maxPrice: value[1],
+    }));
   };
 
-  // Handle filter application
   const handleApplyFilters = () => {
-    // In a real app, we might apply price filters here too
+    setFilters({ ...localFilters });
     if (onFilter) onFilter();
   };
 
-  // Handle filter reset
   const handleResetFilters = () => {
     clearFilters();
-    setPriceRange([100, 400]);
+    setDateRange({ from: undefined, to: undefined });
+    setPriceRange(undefined);
+    setLocalFilters({
+      roomType: undefined,
+      capacity: undefined,
+      checkIn: undefined,
+      checkOut: undefined,
+      minPrice: 100,
+      maxPrice: 400,
+    });
   };
 
-  // Check if search button should be enabled
-  const isSearchEnabled = !!(filters.checkIn && filters.checkOut);
+  const isSearchEnabled =
+    !!localFilters.checkIn ||
+    !!localFilters.checkOut ||
+    !!localFilters.roomType ||
+    !!localFilters.capacity ||
+    (localFilters.minPrice !== undefined &&
+      localFilters.maxPrice !== undefined);
 
   return (
     <div className={cn("bg-background rounded-lg border p-4", className)}>
@@ -141,7 +164,7 @@ export function RoomFilters({
         <div className={cn("flex-1", compact ? "md:max-w-[200px]" : "")}>
           <div className="font-medium mb-2">Room Type</div>
           <Select
-            value={filters.roomType?.id?.toString()}
+            value={localFilters.roomType?.id?.toString()}
             onValueChange={handleRoomTypeChange}
           >
             <SelectTrigger>
@@ -161,7 +184,10 @@ export function RoomFilters({
         {/* Guests */}
         <div className={cn("flex-1", compact ? "md:max-w-[180px]" : "")}>
           <div className="font-medium mb-2">Guests</div>
-          <Select value={filters.guests} onValueChange={handleGuestsChange}>
+          <Select
+            value={localFilters.capacity?.toString()}
+            onValueChange={handleGuestsChange}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Select guests" />
             </SelectTrigger>
@@ -176,24 +202,26 @@ export function RoomFilters({
           </Select>
         </div>
 
-        {/* Price Range (only shown when showPriceFilter is true) */}
+        {/* Price Range */}
         {showPriceFilter && !compact && (
           <div className="flex-1">
             <div className="font-medium mb-2">Price Range</div>
             <div className="px-2">
               <Slider
-                defaultValue={[100, 400]}
-                value={priceRange}
+                value={priceRange ?? [0, 0]}
                 onValueChange={handlePriceChange}
                 min={50}
                 max={500}
                 step={10}
                 className="my-6"
+                draggable
               />
-              <div className="flex items-center justify-between">
-                <span>${priceRange[0]}</span>
-                <span>${priceRange[1]}</span>
-              </div>
+              {priceRange && (
+                <div className="flex items-center justify-between">
+                  <span>${priceRange[0]}</span>
+                  <span>${priceRange[1]}</span>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -215,49 +243,54 @@ export function RoomFilters({
       {activeFilters > 0 && (
         <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t">
           <span className="text-sm text-muted-foreground">Active filters:</span>
-          {filters.roomType && (
+          {localFilters.roomType && (
             <Badge variant="secondary" className="flex items-center gap-1">
-              {roomTypes?.find((t) => t.id === filters!.roomType!.id)?.name}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-4 w-4 p-0 ml-1"
-                onClick={() => setFilters({ roomType: undefined })}
-              >
-                <X className="h-3 w-3" />
-                <span className="sr-only">Remove room type filter</span>
-              </Button>
-            </Badge>
-          )}
-          {filters.guests && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              {filters.guests}{" "}
-              {Number.parseInt(filters.guests) === 1 ? "Guest" : "Guests"}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-4 w-4 p-0 ml-1"
-                onClick={() => setFilters({ guests: undefined })}
-              >
-                <X className="h-3 w-3" />
-                <span className="sr-only">Remove guests filter</span>
-              </Button>
-            </Badge>
-          )}
-          {filters.checkIn && filters.checkOut && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              {format(filters.checkIn, "MMM d")} -{" "}
-              {format(filters.checkOut, "MMM d")}
+              {roomTypes?.find((t) => t.id === localFilters.roomType!.id)?.name}
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-4 w-4 p-0 ml-1"
                 onClick={() =>
-                  setFilters({ checkIn: undefined, checkOut: undefined })
+                  setLocalFilters((prev) => ({ ...prev, roomType: undefined }))
                 }
               >
                 <X className="h-3 w-3" />
-                <span className="sr-only">Remove date filter</span>
+              </Button>
+            </Badge>
+          )}
+          {localFilters.capacity && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              {localFilters.capacity}{" "}
+              {localFilters.capacity === 1 ? "Guest" : "Guests"}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-4 w-4 p-0 ml-1"
+                onClick={() =>
+                  setLocalFilters((prev) => ({ ...prev, capacity: undefined }))
+                }
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          )}
+          {localFilters.checkIn && localFilters.checkOut && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              {format(localFilters.checkIn, "MMM d")} -{" "}
+              {format(localFilters.checkOut, "MMM d")}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-4 w-4 p-0 ml-1"
+                onClick={() =>
+                  setLocalFilters((prev) => ({
+                    ...prev,
+                    checkIn: undefined,
+                    checkOut: undefined,
+                  }))
+                }
+              >
+                <X className="h-3 w-3" />
               </Button>
             </Badge>
           )}

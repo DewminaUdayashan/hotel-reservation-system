@@ -8,7 +8,9 @@ export type RoomFilter = {
   checkIn: Date | undefined;
   checkOut: Date | undefined;
   roomType: RoomType | undefined;
-  guests: string | undefined;
+  capacity: number | undefined;
+  maxPrice: number | undefined;
+  minPrice: number | undefined;
 };
 
 export type User = {
@@ -87,7 +89,9 @@ export const useStore = create<StoreState>()(
         checkIn: undefined,
         checkOut: undefined,
         roomType: undefined,
-        guests: undefined,
+        capacity: undefined,
+        maxPrice: undefined,
+        minPrice: undefined,
       },
 
       setFilters: (filters: Partial<RoomFilter>) =>
@@ -101,7 +105,9 @@ export const useStore = create<StoreState>()(
             checkIn: undefined,
             checkOut: undefined,
             roomType: undefined,
-            guests: undefined,
+            capacity: undefined,
+            maxPrice: undefined,
+            minPrice: undefined,
           },
         }),
 

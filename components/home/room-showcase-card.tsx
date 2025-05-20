@@ -11,21 +11,12 @@ import {
 } from "../ui/card";
 import Image from "next/image";
 import { Badge } from "../ui/badge";
-import {
-  AirVentIcon,
-  Bath,
-  Coffee,
-  Tv,
-  Users,
-  Wifi,
-  ForkKnife,
-} from "lucide-react";
-import Link from "next/link";
+import { Users } from "lucide-react";
 import { Button } from "../ui/button";
-import { useReservations } from "@/lib/api";
 import { useRouter } from "next/navigation";
-import { useAvailableRoomsByType } from "@/hooks/rooms";
+import { useRoomTypeAmenities, useRoomTypeImages } from "@/hooks/rooms/rooms";
 import { getFeatureIcon } from "../room/feature-icon";
+import { Skeleton } from "../ui/skeleton";
 
 type RoomShowcaseCardProps = {
   room: RoomType;
@@ -33,6 +24,13 @@ type RoomShowcaseCardProps = {
 
 export const RoomTypeShowcaseCard = ({ room }: RoomShowcaseCardProps) => {
   const router = useRouter();
+
+  const { data: amenities, isLoading: isAmenitiesLoading } =
+    useRoomTypeAmenities(room.id);
+  const { data: images, isLoading: isImageLoading } = useRoomTypeImages(
+    room.id
+  );
+
   const { data: rooms } = useAvailableRoomsByType({
     roomType: room.id,
     availableOnly: true,
@@ -46,12 +44,17 @@ export const RoomTypeShowcaseCard = ({ room }: RoomShowcaseCardProps) => {
       className="overflow-hidden hover:shadow-sm hover:shadow-white transition-shadow duration-300 ease-in-out"
     >
       <div className="relative h-48 w-full">
-        <Image
-          src={room.images?.[0] || "/placeholder.svg"}
-          alt={room.name}
-          fill
-          className="object-cover transition-transform duration-300 ease-in-out hover:scale-105"
-        />
+        {!isImageLoading && images && (
+          <Image
+            src={images?.[0].url || "/placeholder.svg"}
+            alt={room.name}
+            fill
+            className="object-cover transition-transform duration-300 ease-in-out hover:scale-105"
+          />
+        )}
+        {(isImageLoading || !images) && (
+          <Skeleton className="h-full w-full bg-white/20" />
+        )}
         {room?.isResidential && (
           <Badge className="absolute top-2 right-2 bg-primary">
             Residential
@@ -77,12 +80,13 @@ export const RoomTypeShowcaseCard = ({ room }: RoomShowcaseCardProps) => {
           </span>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          {room.amenities.slice(0, 4).map((feature) => (
-            <div key={feature} className="flex items-center space-x-2">
-              {getFeatureIcon(feature)}
-              <span className="text-sm">{feature}</span>
-            </div>
-          ))}
+          {amenities &&
+            amenities.slice(0, 4).map((feature) => (
+              <div key={feature.id} className="flex items-center space-x-2">
+                {getFeatureIcon(feature.name)}
+                <span className="text-sm">{feature.name}</span>
+              </div>
+            ))}
         </div>
         <div className="mt-4 flex flex-row items-center justify-between">
           <div className="text-lg font-bold">

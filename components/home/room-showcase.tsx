@@ -4,10 +4,11 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 import { RoomTypeShowcaseCard } from "./room-showcase-card";
-import { useRoomTypes } from "@/hooks/rooms";
+import { useRoomTypes } from "@/hooks/rooms/rooms";
+import { Skeleton } from "../ui/skeleton";
 
 export function RoomShowcase() {
-  const { data: rooms } = useRoomTypes();
+  const { data: rooms, isLoading } = useRoomTypes();
 
   return (
     <section className="w-full py-12 md:py-24 lg:py-32 bg-muted">
@@ -22,9 +23,15 @@ export function RoomShowcase() {
           </p>
         </div>
         <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 py-12 md:grid-cols-2 lg:gap-8">
-          {rooms?.map((room) => (
-            <RoomTypeShowcaseCard key={room.id} room={room} />
-          ))}
+          {isLoading && <Skeleton className="h-96 w-full bg-white/20" />}
+          {isLoading && <Skeleton className="h-96 w-full bg-white/20" />}
+          {isLoading && <Skeleton className="h-96 w-full bg-white/20" />}
+          {isLoading && <Skeleton className="h-96 w-full bg-white/20" />}
+          {!isLoading &&
+            rooms &&
+            rooms?.map((room) => (
+              <RoomTypeShowcaseCard key={room.id} room={room} />
+            ))}
         </div>
         <div className="flex justify-center">
           <Link href="/rooms">

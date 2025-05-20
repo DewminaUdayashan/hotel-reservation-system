@@ -1,4 +1,4 @@
-import { Room } from "@/lib/types/room";
+import { Room, RoomWithType } from "@/lib/types/room";
 import {
   Card,
   CardContent,
@@ -12,18 +12,26 @@ import { Users } from "lucide-react";
 import Link from "next/link";
 import { Button } from "../ui/button";
 import Image from "next/image";
-import { useRoomTypeById } from "@/hooks/rooms";
+import {
+  useRoomTypeAmenities,
+  useRoomTypeById,
+  useRoomTypeImages,
+} from "@/hooks/rooms/rooms";
 import { getFeatureIcon } from "./feature-icon";
 import { useRouter } from "next/navigation";
 import { RoomTypeBadge } from "./room-type-badge";
 import { ImageCarousel } from "../image-carousel";
+import { Skeleton } from "../ui/skeleton";
 
 type Props = {
-  room: Room;
+  room: RoomWithType;
 };
 
 export const RoomCard = ({ room }: Props) => {
-  const { data: roomType } = useRoomTypeById(room.type);
+  const { data: images, isLoading: isImagesLoading } = useRoomTypeImages(
+    room.type
+  );
+  const { data: amenities } = useRoomTypeAmenities(room.type);
   const router = useRouter();
   return (
     <Card
@@ -31,18 +39,21 @@ export const RoomCard = ({ room }: Props) => {
       className="overflow-hidden hover:shadow-sm hover:shadow-white transition-shadow duration-300 ease-in-out"
     >
       <div className="relative h-48 w-full">
-        <Image
-          src={room.images?.[0]}
-          alt={room.name || "Room"}
-          fill
-          className="object-cover transition-transform duration-300 ease-in-out hover:scale-105"
-        />
+        {!isImagesLoading && (
+          <Image
+            src={images?.[0].url ?? "/placeholder.svg"}
+            alt={room.name || "Room"}
+            fill
+            className="object-cover transition-transform duration-300 ease-in-out hover:scale-105"
+          />
+        )}
+        {isImagesLoading && <Skeleton className="h-full w-full bg-white/20" />}
 
-        <RoomTypeBadge type={roomType?.name ?? ""} />
-        {room.status !== "available" && (
+        <RoomTypeBadge type={room?.roomTypeName ?? ""} />
+        {(room.status !== "available" || room.isReserved) && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
             <Badge variant="destructive" className="text-lg">
-              Fully Booked
+              Reserved
             </Badge>
           </div>
         )}
@@ -55,28 +66,28 @@ export const RoomCard = ({ room }: Props) => {
         <div className="flex items-center space-x-2 mb-4">
           <Users className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm text-muted-foreground">
-            Up to {roomType?.capacity} guests
+            Up to {room?.capacity} guests
           </span>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          {roomType?.amenities?.slice(0, 4).map((feature) => (
-            <div key={feature} className="flex items-center space-x-2">
-              {getFeatureIcon(feature)}
-              <span className="text-sm">{feature}</span>
+          {amenities?.slice(0, 4).map((feature) => (
+            <div key={feature.id} className="flex items-center space-x-2">
+              {getFeatureIcon(feature.name)}
+              <span className="text-sm">{feature.name}</span>
             </div>
           ))}
         </div>
         <div className="mt-4 flex items-center justify-between">
           <div className="text-lg font-bold">
-            ${roomType?.price}
+            ${room?.price}
             <span className="text-sm font-normal text-muted-foreground">
               {" "}
               / night
             </span>
           </div>
-          {roomType?.weeklyRate && (
+          {room?.weeklyRate && (
             <div className="text-sm text-muted-foreground">
-              Weekly: ${roomType.weeklyRate}
+              Weekly: ${room.weeklyRate}
             </div>
           )}
         </div>

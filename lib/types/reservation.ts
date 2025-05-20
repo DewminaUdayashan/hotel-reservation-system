@@ -4,7 +4,12 @@ export type ReservationStatus =
   | "checked-out"
   | "canceled";
 export type PaymentStatus = "paid" | "pending" | "partial" | "failed";
-export type PaymentMethod = "credit-card" | "cash" | "bank-transfer" | "paypal";
+export type PaymentMethod =
+  | "credit-card"
+  | "debit-card"
+  | "cash"
+  | "bank-transfer";
+
 export type AdditionalCharge = {
   id: number;
   description: string;
