@@ -1,19 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
-  Calendar,
   Check,
   ChevronRight,
-  Coffee,
   CreditCard,
-  Tv,
   Users,
-  Wifi,
-  Bath,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,30 +21,47 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageCarousel } from "@/components/image-carousel";
-import { useStore } from "@/lib/store";
-import { roomTypes, rooms } from "@/lib/data";
-import { useAvailableRoomsByType, useRoomTypeById } from "@/hooks/rooms";
+import {
+  useAvailableRoomsByType,
+  useRoomTypeAmenities,
+  useRoomTypeById,
+  useRoomTypeImages,
+  useRoomTypes,
+} from "@/hooks/rooms/rooms";
 import { getFeatureIcon } from "@/components/room/feature-icon";
+import { Skeleton } from "@/components/ui/skeleton";
+import { MoreRoomTypesCard } from "@/components/room/more-room-types-card";
+import { useRoomFilterStore } from "@/lib/stores/useRoomFilterStore";
 
 export default function RoomTypeDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const roomTypeId = Number.parseInt(params.id as string, 10);
+  const roomTypeId = Number.parseInt(params?.id as string, 10);
 
+  const { data: roomTypes } = useRoomTypes();
   const { data: roomType, isLoading } = useRoomTypeById(roomTypeId);
+  const { data: amenities, isLoading: isAmenitiesLoading } =
+    useRoomTypeAmenities(roomTypeId);
+  const { data: images, isLoading: isImagesLoading } =
+    useRoomTypeImages(roomTypeId);
 
-  const { data: rooms } = useAvailableRoomsByType({
-    roomType: roomTypeId,
-    availableOnly: true,
-  });
+  const filters = useRoomFilterStore((state) => state.filters);
+  const setFilters = useRoomFilterStore((state) => state.setFilters);
+
+  const checkIn = filters.checkIn;
+  const checkOut = filters.checkOut;
+
+  const { data: rooms } = useAvailableRoomsByType(
+    roomTypeId,
+    checkIn?.toISOString() ?? undefined,
+    checkOut?.toISOString() ?? undefined
+  );
 
   const availableRoomsCount = rooms?.length || 0;
 
-  const setFilters = useStore((state) => state.setFilters);
-
   const handleViewAvailableRooms = () => {
     // Update filters with the selected room type
-    // setFilters({ roomType: roomType });
+    setFilters({ roomType: roomType });
     // Navigate to rooms page
     router.push("/rooms");
   };
@@ -101,11 +112,16 @@ export default function RoomTypeDetailsPage() {
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-8">
           {/* Image Gallery */}
-          <ImageCarousel
-            images={roomType.images}
-            aspectRatio="video"
-            className="rounded-lg overflow-hidden"
-          />
+          {images && (
+            <ImageCarousel
+              images={images?.map((img) => img.url) || []}
+              aspectRatio="video"
+              className="rounded-lg overflow-hidden"
+            />
+          )}
+          {(isImagesLoading || !images) && (
+            <Skeleton className="h-96 w-full rounded-lg" />
+          )}
 
           {/* Room Details */}
           <Tabs defaultValue="overview">
@@ -135,7 +151,7 @@ export default function RoomTypeDetailsPage() {
                   </div>
                   <div>
                     <h3 className="font-medium">View</h3>
-                    <p className="text-muted-foreground">{roomType.view}</p>
+                    <p className="text-muted-foreground">{roomType.viewType}</p>
                   </div>
                   <div>
                     <h3 className="font-medium">Max Occupancy</h3>
@@ -208,12 +224,22 @@ export default function RoomTypeDetailsPage() {
                 <div>
                   <h3 className="text-lg font-semibold mb-3">Room Amenities</h3>
                   <ul className="space-y-2">
-                    {roomType.amenities?.map((amenity) => (
-                      <li key={amenity} className="flex items-center">
-                        {getFeatureIcon(amenity)}
-                        <span className="ml-2">{amenity}</span>
+                    {!isAmenitiesLoading &&
+                      amenities &&
+                      amenities?.map((amenity) => (
+                        <li key={amenity.id} className="flex items-center">
+                          {getFeatureIcon(amenity.name)}
+                          <span className="ml-2">{amenity.name}</span>
+                        </li>
+                      ))}
+                    {(isAmenitiesLoading || !amenities) && (
+                      <li className="flex items-center">
+                        <Skeleton className="h-4 w-1/2" />
+                        <Skeleton className="h-4 w-1/2" />
+                        <Skeleton className="h-4 w-1/2" />
+                        <Skeleton className="h-4 w-1/2" />
                       </li>
-                    ))}
+                    )}
                   </ul>
                 </div>
                 <div>
@@ -301,41 +327,11 @@ export default function RoomTypeDetailsPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {roomTypes
-                .filter((rt) => rt.id !== roomType.id)
-                .slice(0, 2)
-                .map((rt) => (
-                  <Card
-                    key={rt.id}
-                    className="flex flex-col md:flex-row overflow-hidden"
-                  >
-                    <div className="relative h-40 w-full md:w-1/3">
-                      <ImageCarousel
-                        images={rt.images}
-                        showControls={false}
-                        showIndicators={false}
-                        aspectRatio="square"
-                      />
-                    </div>
-                    <div className="flex-1 p-4">
-                      <h3 className="font-semibold">{rt.name}</h3>
-                      <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                        {rt.description}
-                      </p>
-                      <div className="flex items-center justify-between mt-auto">
-                        <div className="text-lg font-semibold">
-                          ${rt.price}
-                          <span className="text-sm font-normal text-muted-foreground">
-                            /night
-                          </span>
-                        </div>
-                        <Link href={`/room-types/${rt.id}`}>
-                          <Button size="sm">View</Button>
-                        </Link>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
+              {roomTypes &&
+                roomTypes
+                  .filter((rt) => rt.id !== roomType.id)
+                  .slice(0, 2)
+                  .map((rt) => <MoreRoomTypesCard key={rt.id} roomType={rt} />)}
             </div>
           </div>
         </div>
@@ -365,10 +361,10 @@ export default function RoomTypeDetailsPage() {
               <div className="space-y-2">
                 <h3 className="text-sm font-medium">Room Features:</h3>
                 <ul className="space-y-1 text-sm">
-                  {roomType.amenities?.slice(0, 5).map((amenity) => (
-                    <li key={amenity} className="flex items-center">
+                  {amenities?.slice(0, 5).map((amenity) => (
+                    <li key={amenity.id} className="flex items-center">
                       <Check className="h-3 w-3 text-green-500 mr-2" />
-                      {amenity}
+                      {amenity.name}
                     </li>
                   ))}
                 </ul>

@@ -1,4 +1,12 @@
-import { AirVentIcon, Bath, Coffee, ForkKnife, Tv, Wifi } from "lucide-react";
+import {
+  AirVentIcon,
+  Bath,
+  Coffee,
+  ForkKnife,
+  SquareCheck,
+  Tv,
+  Wifi,
+} from "lucide-react";
 
 export const getFeatureIcon = (feature: string) => {
   if (feature.includes("WiFi")) return <Wifi className="h-4 w-4" />;
@@ -9,5 +17,5 @@ export const getFeatureIcon = (feature: string) => {
   if (feature.includes("Air Conditioning"))
     return <AirVentIcon className="h-4 w-4" />;
   if (feature.includes("Kitchen")) return <ForkKnife className="h-4 w-4" />;
-  return null;
+  return <SquareCheck className="h-4 w-4" />;
 };
