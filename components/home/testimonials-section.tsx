@@ -1,6 +1,6 @@
-import Image from "next/image"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
-import { Star } from "lucide-react"
+import Image from "next/image";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Star } from "lucide-react";
 
 export function TestimonialsSection() {
   const testimonials = [
@@ -31,16 +31,19 @@ export function TestimonialsSection() {
         "Our honeymoon at LuxeStay was magical. The romantic package they arranged for us made our stay truly unforgettable.",
       rating: 5,
     },
-  ]
+  ];
 
   return (
     <section className="w-full py-12 md:py-24 lg:py-32 bg-muted">
-      <div className="container px-4 md:px-6">
+      <div className="px-4 md:px-6">
         <div className="flex flex-col items-center justify-center space-y-4 text-center">
           <div className="space-y-2">
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">What Our Guests Say</h2>
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">
+              What Our Guests Say
+            </h2>
             <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-              Don't just take our word for it. Here's what our guests have to say about their experience with us.
+              Don't just take our word for it. Here's what our guests have to
+              say about their experience with us.
             </p>
           </div>
         </div>
@@ -54,7 +57,11 @@ export function TestimonialsSection() {
                     .map((_, i) => (
                       <Star
                         key={i}
-                        className={`h-5 w-5 ${i < testimonial.rating ? "text-yellow-500 fill-yellow-500" : "text-gray-300"}`}
+                        className={`h-5 w-5 ${
+                          i < testimonial.rating
+                            ? "text-yellow-500 fill-yellow-500"
+                            : "text-gray-300"
+                        }`}
                       />
                     ))}
                 </div>
@@ -72,7 +79,9 @@ export function TestimonialsSection() {
                   </div>
                   <div>
                     <p className="text-sm font-medium">{testimonial.name}</p>
-                    <p className="text-xs text-muted-foreground">{testimonial.role}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {testimonial.role}
+                    </p>
                   </div>
                 </div>
               </CardFooter>
@@ -81,5 +90,5 @@ export function TestimonialsSection() {
         </div>
       </div>
     </section>
-  )
+  );
 }

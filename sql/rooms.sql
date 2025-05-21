@@ -80,7 +80,6 @@ BEGIN
     ORDER BY RT.price ASC;
 END;
 
-
 CREATE PROCEDURE GetRoomDetailsById
     @roomId INT
 AS

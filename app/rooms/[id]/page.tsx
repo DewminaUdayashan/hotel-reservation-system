@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -9,12 +9,8 @@ import {
   Calendar,
   Check,
   ChevronRight,
-  Coffee,
   CreditCard,
-  Tv,
   Users,
-  Wifi,
-  Bath,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,41 +24,70 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageCarousel } from "@/components/image-carousel";
-import { useStore } from "@/lib/store";
-import { roomTypes, rooms } from "@/lib/data";
 import { AuthDialog } from "@/components/auth-dialog";
 import {
-  useAreAllRoomsUnavailable,
+  useAllRooms,
+  useRoomAvailability,
   useRoomById,
+  useRoomTypeAmenities,
   useRoomTypeById,
-} from "@/hooks/rooms";
+  useRoomTypeImages,
+} from "@/hooks/rooms/rooms";
 import { getFeatureIcon } from "@/components/room/feature-icon";
 import { DateRangePicker } from "@/components/shared/date-range-picker";
+import { Skeleton } from "@/components/ui/skeleton";
+import { MoreRoomCard } from "@/components/room/more-room-card";
+import { useAuth } from "@/hooks/auth/useAuth";
+import { useRoomFilterStore } from "@/lib/stores/useRoomFilterStore";
 
 export default function RoomDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const roomId = Number.parseInt(params.id as string);
+  const roomId = Number.parseInt(params?.id as string);
 
   const { data: room, isLoading } = useRoomById(roomId);
   const { data: roomType, isLoading: isRoomTypeLoading } = useRoomTypeById(
     room?.type
   );
-  const isUnavailable = useAreAllRoomsUnavailable({
-    roomType: room?.type,
-    checkIn: new Date(),
-    checkOut: new Date(),
-  });
+  const { data: images, isLoading: isImagesLoading } = useRoomTypeImages(
+    room?.type
+  );
+
+  const { data: amenities, isLoading: isAmenitiesLoading } =
+    useRoomTypeAmenities(room?.type);
 
   const [showAuthDialog, setShowAuthDialog] = useState(false);
 
-  const filters = useStore((state) => state.filters);
+  const filters = useRoomFilterStore((state) => state.filters);
+  const setFilters = useRoomFilterStore((state) => state.setFilters);
+
   const checkIn = filters.checkIn;
   const checkOut = filters.checkOut;
-  const user = useStore((state) => state.user);
+  const capacity = filters.capacity;
+  const minPrice = filters.minPrice;
+  const maxPrice = filters.maxPrice;
+  const type = filters.roomType?.id;
+
+  const user = useAuth().user;
+
+  const { data: isAvailable, isLoading: isCheckingAvailability } =
+    useRoomAvailability(
+      roomId,
+      checkIn?.toISOString() ?? undefined,
+      checkOut?.toISOString() ?? undefined
+    );
+
+  const { data: similarRooms } = useAllRooms({
+    capacity,
+    checkIn: checkIn?.toISOString() ?? undefined,
+    checkOut: checkOut?.toISOString() ?? undefined,
+    maxPrice,
+    minPrice,
+    type,
+  });
 
   const handleBookNow = () => {
-    if (!user.isLoggedIn) {
+    if (!user) {
       setShowAuthDialog(true);
     } else {
       router.push(`/reservation/new?roomId=${roomId}`);
@@ -123,11 +148,12 @@ export default function RoomDetailsPage() {
             {room.isResidential && (
               <Badge className="ml-2 bg-primary">Residential</Badge>
             )}
-            {isUnavailable && (
-              <Badge variant="destructive" className="ml-2">
-                Fully Booked
-              </Badge>
-            )}
+            {!isCheckingAvailability &&
+              (room.status !== "available" || !isAvailable) && (
+                <Badge variant="destructive" className="ml-2">
+                  Fully Booked
+                </Badge>
+              )}
           </div>
         </div>
       </div>
@@ -135,11 +161,16 @@ export default function RoomDetailsPage() {
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-8">
           {/* Image Gallery */}
-          <ImageCarousel
-            images={room.images}
-            aspectRatio="video"
-            className="rounded-lg overflow-hidden"
-          />
+          {images && (
+            <ImageCarousel
+              images={images?.map((image) => image.url) || []}
+              aspectRatio="video"
+              className="rounded-lg overflow-hidden"
+            />
+          )}
+          {(isImagesLoading || !images) && (
+            <Skeleton className="h-96 w-full bg-white/20" />
+          )}
 
           {/* Room Details */}
           <Tabs defaultValue="overview">
@@ -169,7 +200,7 @@ export default function RoomDetailsPage() {
                   </div>
                   <div>
                     <h3 className="font-medium">View</h3>
-                    <p className="text-muted-foreground">{room.view}</p>
+                    <p className="text-muted-foreground">{room.viewType}</p>
                   </div>
                   <div>
                     <h3 className="font-medium">Max Occupancy</h3>
@@ -240,12 +271,16 @@ export default function RoomDetailsPage() {
                 <div>
                   <h3 className="text-lg font-semibold mb-3">Room Amenities</h3>
                   <ul className="space-y-2">
-                    {room.amenities?.map((amenity) => (
-                      <li key={amenity} className="flex items-center">
-                        {getFeatureIcon(amenity)}
-                        <span className="ml-2">{amenity}</span>
-                      </li>
-                    ))}
+                    {amenities &&
+                      amenities?.map((amenity) => (
+                        <li key={amenity.id} className="flex items-center">
+                          {getFeatureIcon(amenity.name)}
+                          <span className="ml-2">{amenity.name}</span>
+                        </li>
+                      ))}
+                    {isAmenitiesLoading && (
+                      <Skeleton className="h-4 w-full bg-white/20" />
+                    )}
                   </ul>
                 </div>
                 <div>
@@ -333,45 +368,11 @@ export default function RoomDetailsPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {roomTypes
-                .filter((rt) => rt.id !== room.type)
-                .slice(0, 2)
-                .map((roomType) => (
-                  <Card
-                    key={roomType.id}
-                    className="flex flex-col md:flex-row overflow-hidden"
-                  >
-                    <div className="relative h-40 w-full md:w-1/3">
-                      <ImageCarousel
-                        images={roomType.images}
-                        showControls={false}
-                        showIndicators={false}
-                        aspectRatio="square"
-                      />
-                    </div>
-                    <div className="flex-1 p-4">
-                      <h3 className="font-semibold">{roomType.name}</h3>
-                      <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                        {roomType.description}
-                      </p>
-                      <div className="flex items-center justify-between mt-auto">
-                        <div className="text-lg font-semibold">
-                          ${roomType.price}
-                          <span className="text-sm font-normal text-muted-foreground">
-                            /night
-                          </span>
-                        </div>
-                        <Link
-                          href={`/rooms/${
-                            rooms.find((r) => r.type === roomType.id)?.id || 1
-                          }`}
-                        >
-                          <Button size="sm">View</Button>
-                        </Link>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
+              {similarRooms &&
+                similarRooms
+                  .filter((rt) => rt.id !== room.type)
+                  .slice(0, 2)
+                  .map((room) => <MoreRoomCard key={room.id} room={room} />)}
             </div>
           </div>
         </div>
@@ -382,7 +383,9 @@ export default function RoomDetailsPage() {
             <CardHeader>
               <CardTitle>Book This Room</CardTitle>
               <CardDescription>
-                {isUnavailable
+                {!isCheckingAvailability &&
+                room.status === "available" &&
+                isAvailable
                   ? "Secure your reservation now"
                   : "This room is currently unavailable for the selected dates"}
               </CardDescription>
@@ -434,12 +437,10 @@ export default function RoomDetailsPage() {
                       to: filters.checkOut,
                     }}
                     onSelect={(range) => {
-                      useStore.setState({
-                        filters: {
-                          ...filters,
-                          checkIn: range.from,
-                          checkOut: range.to,
-                        },
+                      setFilters({
+                        ...filters,
+                        checkIn: range.from,
+                        checkOut: range.to,
                       });
                     }}
                     popOverTrigger={
@@ -483,7 +484,9 @@ export default function RoomDetailsPage() {
               <Button
                 className="w-full"
                 size="lg"
-                disabled={!isUnavailable || nights === 0}
+                disabled={
+                  room.status !== "available" || !isAvailable || nights === 0
+                }
                 onClick={handleBookNow}
               >
                 {nights === 0 ? "Select dates to book" : "Book Now"}

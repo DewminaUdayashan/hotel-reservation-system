@@ -4,24 +4,36 @@ export type RoomType = {
   id: number;
   name: string;
   description: string;
-  images: string[];
-  amenities: string[];
   capacity: number;
   price: number;
   weeklyRate?: number;
   monthlyRate?: number;
   isResidential?: boolean;
   bedType: string;
-  view: string;
+  viewType: string;
 };
 
 export type Room = {
   id: number;
   name: string;
   description: string;
-  images: string[];
   status: RoomStatus;
   type: number;
-  bedType: string;
-  view: string;
+  bedType?: string;
+  viewType?: string;
+};
+
+export type RoomWithType = Room & {
+  roomTypeName: string;
+  capacity: number;
+  price: number;
+  weeklyRate?: number;
+  monthlyRate?: number;
+  isResidential?: boolean;
+  isReserved?: boolean;
+};
+
+export type Amenity = {
+  id: number;
+  name: string;
 };

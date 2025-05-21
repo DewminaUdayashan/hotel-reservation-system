@@ -1,48 +1,75 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
-import { format } from "date-fns"
-import { CalendarIcon, ChevronLeft, CreditCard, Hotel } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
-import { cn } from "@/lib/utils"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import * as z from "zod"
-import { toast } from "@/components/ui/use-toast"
-import { Toaster } from "@/components/ui/toaster"
-import { useStore } from "@/lib/store"
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { format } from "date-fns";
+import { CalendarIcon, ChevronLeft, CreditCard, Hotel } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { toast } from "@/components/ui/use-toast";
+import { Toaster } from "@/components/ui/toaster";
+import { useRoomFilterStore } from "@/lib/stores/useRoomFilterStore";
 
 // Form validation schema
 const formSchema = z.object({
   specialRequests: z.string().optional(),
   guests: z.string().min(1, "Number of guests is required"),
-})
+});
 
 export default function EditReservationPage() {
-  const params = useParams()
-  const router = useRouter()
-  const reservationId = params.id as string
+  const params = useParams();
+  const router = useRouter();
+  const reservationId = params?.id as string;
 
-  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+  const [dateRange, setDateRange] = useState<{
+    from: Date | undefined;
+    to: Date | undefined;
+  }>({
     from: undefined,
     to: undefined,
-  })
+  });
 
-  const { reservations, updateReservation } = useStore((state) => ({
+  const { reservations, updateReservation } = useRoomFilterStore((state) => ({
     reservations: state.reservations,
     updateReservation: state.updateReservation,
-  }))
+  }));
 
   // Find the reservation
-  const reservation = reservations.find((res) => res.id === reservationId)
+  const reservation = reservations.find((res) => res.id === reservationId);
 
   // Initialize form with values from the reservation
   const form = useForm<z.infer<typeof formSchema>>({
@@ -51,7 +78,7 @@ export default function EditReservationPage() {
       specialRequests: reservation?.specialRequests || "",
       guests: reservation?.guests.toString() || "1",
     },
-  })
+  });
 
   // Initialize date range
   useEffect(() => {
@@ -59,31 +86,35 @@ export default function EditReservationPage() {
       setDateRange({
         from: new Date(reservation.checkIn),
         to: new Date(reservation.checkOut),
-      })
+      });
     }
-  }, [reservation])
+  }, [reservation]);
 
   // Handle form submission
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    if (!reservation) return
+    if (!reservation) return;
 
     // Calculate total amount based on new dates if changed
-    let totalAmount = reservation.totalAmount
+    let totalAmount = reservation.totalAmount;
     if (
       dateRange.from &&
       dateRange.to &&
       (dateRange.from.getTime() !== new Date(reservation.checkIn).getTime() ||
         dateRange.to.getTime() !== new Date(reservation.checkOut).getTime())
     ) {
-      const nights = Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24))
+      const nights = Math.ceil(
+        (dateRange.to.getTime() - dateRange.from.getTime()) /
+          (1000 * 60 * 60 * 24)
+      );
       // This is simplified - in a real app we'd recalculate based on room price
       totalAmount =
         (reservation.totalAmount /
           Math.ceil(
-            (new Date(reservation.checkOut).getTime() - new Date(reservation.checkIn).getTime()) /
-              (1000 * 60 * 60 * 24),
+            (new Date(reservation.checkOut).getTime() -
+              new Date(reservation.checkIn).getTime()) /
+              (1000 * 60 * 60 * 24)
           )) *
-        nights
+        nights;
     }
 
     // Update reservation
@@ -93,49 +124,65 @@ export default function EditReservationPage() {
       guests: Number.parseInt(values.guests),
       specialRequests: values.specialRequests || "",
       totalAmount,
-    })
+    });
 
     toast({
       title: "Reservation updated",
       description: "Your reservation has been successfully updated.",
-    })
+    });
 
-    router.push(`/reservations/${reservationId}`)
-  }
+    router.push(`/reservations/${reservationId}`);
+  };
 
   if (!reservation) {
     return (
       <div className="container mx-auto py-10 px-4">
         <div className="flex items-center justify-center h-[60vh]">
           <div className="text-center">
-            <h2 className="text-xl font-semibold mb-2">Reservation not found</h2>
-            <p className="text-muted-foreground mb-4">The reservation you're looking for doesn't exist.</p>
-            <Button onClick={() => router.push("/reservations")}>View All Reservations</Button>
+            <h2 className="text-xl font-semibold mb-2">
+              Reservation not found
+            </h2>
+            <p className="text-muted-foreground mb-4">
+              The reservation you're looking for doesn't exist.
+            </p>
+            <Button onClick={() => router.push("/reservations")}>
+              View All Reservations
+            </Button>
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   // Calculate nights and total price
   const nights =
     dateRange.from && dateRange.to
-      ? Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24))
-      : 0
+      ? Math.ceil(
+          (dateRange.to.getTime() - dateRange.from.getTime()) /
+            (1000 * 60 * 60 * 24)
+        )
+      : 0;
 
   // This is simplified - in a real app we'd get the actual room price
   const roomPrice =
     reservation.totalAmount /
     Math.ceil(
-      (new Date(reservation.checkOut).getTime() - new Date(reservation.checkIn).getTime()) / (1000 * 60 * 60 * 24),
-    )
+      (new Date(reservation.checkOut).getTime() -
+        new Date(reservation.checkIn).getTime()) /
+        (1000 * 60 * 60 * 24)
+    );
 
-  const totalPrice = nights * roomPrice
+  const totalPrice = nights * roomPrice;
 
   return (
     <div className="container mx-auto py-10 px-4">
       <div className="flex items-center mb-8">
-        <Button variant="ghost" size="sm" onClick={() => router.back()} className="mr-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.back()}
+          className="mr-4"
+        >
           <ChevronLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
@@ -150,11 +197,16 @@ export default function EditReservationPage() {
           <Card>
             <CardHeader>
               <CardTitle>Reservation Details</CardTitle>
-              <CardDescription>Update your reservation details below.</CardDescription>
+              <CardDescription>
+                Update your reservation details below.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                <form
+                  onSubmit={form.handleSubmit(onSubmit)}
+                  className="space-y-8"
+                >
                   <div className="space-y-6">
                     <div className="grid gap-6">
                       <div>
@@ -162,11 +214,13 @@ export default function EditReservationPage() {
                         <div className="flex items-center h-10 px-3 rounded-md border">
                           <Hotel className="mr-2 h-4 w-4 text-muted-foreground" />
                           <span>
-                            {reservation.roomType} (Room {reservation.roomNumber})
+                            {reservation.roomType} (Room{" "}
+                            {reservation.roomNumber})
                           </span>
                         </div>
                         <p className="text-sm text-muted-foreground mt-1">
-                          Room type cannot be changed. Please make a new reservation if you want a different room.
+                          Room type cannot be changed. Please make a new
+                          reservation if you want a different room.
                         </p>
                       </div>
 
@@ -176,7 +230,10 @@ export default function EditReservationPage() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Number of Guests</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                            >
                               <FormControl>
                                 <SelectTrigger>
                                   <SelectValue placeholder="Select number of guests" />
@@ -203,14 +260,15 @@ export default function EditReservationPage() {
                               variant={"outline"}
                               className={cn(
                                 "w-full justify-start text-left font-normal",
-                                !dateRange.from && "text-muted-foreground",
+                                !dateRange.from && "text-muted-foreground"
                               )}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4" />
                               {dateRange.from ? (
                                 dateRange.to ? (
                                   <>
-                                    {format(dateRange.from, "MMM dd, yyyy")} - {format(dateRange.to, "MMM dd, yyyy")}
+                                    {format(dateRange.from, "MMM dd, yyyy")} -{" "}
+                                    {format(dateRange.to, "MMM dd, yyyy")}
                                   </>
                                 ) : (
                                   format(dateRange.from, "MMM dd, yyyy")
@@ -241,10 +299,14 @@ export default function EditReservationPage() {
                           <FormItem>
                             <FormLabel>Special Requests</FormLabel>
                             <FormControl>
-                              <Input placeholder="Any special requests or requirements" {...field} />
+                              <Input
+                                placeholder="Any special requests or requirements"
+                                {...field}
+                              />
                             </FormControl>
                             <FormDescription>
-                              Let us know if you have any special requirements for your stay.
+                              Let us know if you have any special requirements
+                              for your stay.
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
@@ -254,7 +316,11 @@ export default function EditReservationPage() {
                   </div>
 
                   <div className="flex justify-between">
-                    <Button type="button" variant="outline" onClick={() => router.back()}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => router.back()}
+                    >
                       Cancel
                     </Button>
                     <Button type="submit">Save Changes</Button>
@@ -305,7 +371,10 @@ export default function EditReservationPage() {
               </div>
               <div className="flex items-center text-sm text-muted-foreground">
                 <CreditCard className="mr-2 h-4 w-4" />
-                Payment method: {reservation.paymentMethod === "credit-card" ? "Credit Card" : "Pay at Hotel"}
+                Payment method:{" "}
+                {reservation.paymentMethod === "credit-card"
+                  ? "Credit Card"
+                  : "Pay at Hotel"}
               </div>
             </CardContent>
           </Card>
@@ -314,5 +383,5 @@ export default function EditReservationPage() {
 
       <Toaster />
     </div>
-  )
+  );
 }
