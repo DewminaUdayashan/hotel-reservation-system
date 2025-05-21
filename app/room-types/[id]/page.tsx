@@ -23,6 +23,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageCarousel } from "@/components/image-carousel";
 import { useStore } from "@/lib/store";
 import {
+  useAvailableRoomsByType,
   useRoomTypeAmenities,
   useRoomTypeById,
   useRoomTypeImages,
@@ -44,10 +45,15 @@ export default function RoomTypeDetailsPage() {
   const { data: images, isLoading: isImagesLoading } =
     useRoomTypeImages(roomTypeId);
 
-  const { data: rooms } = useAvailableRoomsByType({
-    roomType: roomTypeId,
-    availableOnly: true,
-  });
+  const filters = useStore((state) => state.filters);
+  const checkIn = filters.checkIn;
+  const checkOut = filters.checkOut;
+
+  const { data: rooms } = useAvailableRoomsByType(
+    roomTypeId,
+    checkIn?.toISOString(),
+    checkOut?.toISOString()
+  );
 
   const availableRoomsCount = rooms?.length || 0;
 

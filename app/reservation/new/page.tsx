@@ -39,8 +39,9 @@ import { useMutation } from "@tanstack/react-query";
 import { toast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { useStore } from "@/lib/store";
-import { roomTypes, rooms } from "@/lib/data";
 import { AuthDialog } from "@/components/auth-dialog";
+import { useAuth } from "@/hooks/auth/useAuth";
+import { useRoomById } from "@/hooks/rooms/rooms";
 
 // Form validation schema
 const formSchema = z
@@ -80,38 +81,37 @@ const formSchema = z
 export default function NewReservationPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const roomId = searchParams.get("roomId");
+  const roomId = Number.parseInt(searchParams?.get("roomId") || "");
+
+  const { data: room } = useRoomById(roomId);
 
   const [step, setStep] = useState(1);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
 
   const filters = useStore((state) => state.filters);
-  const user = useStore((state) => state.user);
-  const addReservation = useStore((state) => state.addReservation);
+  const user = useAuth().user;
 
   // Check if user is logged in
   useEffect(() => {
     // Only show auth dialog on initial render if user is not logged in
-    if (!user.isLoggedIn && !showAuthDialog) {
+    if (!user && !showAuthDialog) {
       setShowAuthDialog(true);
     }
   }, []); // Empty dependency array to run only once
 
   // Get room type from room ID
-  const selectedRoomType = roomId
-    ? rooms.find((r) => r.id === Number.parseInt(roomId))?.type
-    : filters.roomType;
+  const selectedRoomType = room?.type;
 
   // Initialize form with values from global state
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      firstName: user.name.split(" ")[0] || "",
-      lastName: user.name.split(" ")[1] || "",
-      email: user.email || "",
-      phone: "",
-      roomType: selectedRoomType || "",
-      guests: filters.guests || "1",
+      firstName: user?.firstName ?? "",
+      lastName: user?.lastName ?? "",
+      email: user?.email || "",
+      phone: user?.phone || "",
+      roomType: selectedRoomType?.toString() || "",
+      guests: filters.capacity?.toString() || "1",
       specialRequests: "",
       withCreditCard: true,
       cardName: "",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -11,10 +11,7 @@ import {
   ChevronRight,
   Coffee,
   CreditCard,
-  Tv,
   Users,
-  Wifi,
-  Bath,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,8 +38,8 @@ import {
 import { getFeatureIcon } from "@/components/room/feature-icon";
 import { DateRangePicker } from "@/components/shared/date-range-picker";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MoreRoomTypesCard } from "@/components/room/more-room-types-card";
 import { MoreRoomCard } from "@/components/room/more-room-card";
+import { useAuth } from "@/hooks/auth/useAuth";
 
 export default function RoomDetailsPage() {
   const params = useParams();
@@ -70,7 +67,7 @@ export default function RoomDetailsPage() {
   const maxPrice = filters.maxPrice;
   const type = filters.roomType?.id;
 
-  const user = useStore((state) => state.user);
+  const user = useAuth().user;
 
   const { data: isAvailable, isLoading: isCheckingAvailability } =
     useRoomAvailability(
@@ -89,7 +86,7 @@ export default function RoomDetailsPage() {
   });
 
   const handleBookNow = () => {
-    if (!user.isLoggedIn) {
+    if (!user) {
       setShowAuthDialog(true);
     } else {
       router.push(`/reservation/new?roomId=${roomId}`);

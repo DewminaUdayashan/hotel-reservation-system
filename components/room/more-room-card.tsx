@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ImageCarousel } from "../image-carousel";
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
-import { RoomType, RoomWithType } from "@/lib/types/room";
+import { RoomWithType } from "@/lib/types/room";
 import { useRoomImages, useRoomTypeImages } from "@/hooks/rooms/rooms";
 import { Skeleton } from "../ui/skeleton";
 

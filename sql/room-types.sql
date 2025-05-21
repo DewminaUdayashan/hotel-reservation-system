@@ -44,3 +44,4 @@ BEGIN
     WHERE RTI.roomTypeId = @RoomTypeId
     ORDER BY I.id;
 END;
+

@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { Providers } from "./providers";
 import { Footer } from "@/components/home/footer";
 import { Header } from "@/components/home/header";
+import { AuthProvider } from "@/context/AuthContext";
 
 export const metadata: Metadata = {
   title: "LuxeStay Hotels - Hotel Reservation System",

@@ -37,6 +37,7 @@ import { useStore } from "@/lib/store";
 import { AuthDialog } from "@/components/auth-dialog";
 import { toast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
+import { useAuth } from "@/hooks/auth/useAuth";
 
 export default function ReservationsPage() {
   const router = useRouter();
@@ -47,22 +48,14 @@ export default function ReservationsPage() {
     null
   );
 
-  const initializeStore = useStore((state) => state.initializeStore);
-  const user = useStore((state) => state.user);
-  const reservations = useStore((state) => state.reservations);
-  const cancelReservation = useStore((state) => state.cancelReservation);
-
-  // Initialize store with mock data if needed
-  useEffect(() => {
-    // Only initialize once when component mounts
-    initializeStore();
-    // Remove initializeStore from dependencies
-  }, []);
+  const user = useAuth().user;
+  const reservations = [];
+  const cancelReservation = () => {};
 
   // Check if user is logged in
   useEffect(() => {
     // Only show auth dialog on initial render if user is not logged in
-    if (!user.isLoggedIn && !showAuthDialog) {
+    if (!user && !showAuthDialog) {
       setShowAuthDialog(true);
     }
   }, []); // Empty dependency array to run only once
@@ -81,7 +74,7 @@ export default function ReservationsPage() {
 
   const handleCancelReservation = () => {
     if (selectedReservation) {
-      cancelReservation(selectedReservation);
+      // cancelReservation(selectedReservation);
       toast({
         title: "Reservation cancelled",
         description: "Your reservation has been successfully cancelled.",

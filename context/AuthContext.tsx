@@ -1,6 +1,8 @@
+"use client";
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 
 interface AuthContextType {
   user: User | null;

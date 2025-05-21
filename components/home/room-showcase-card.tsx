@@ -14,9 +14,14 @@ import { Badge } from "../ui/badge";
 import { Users } from "lucide-react";
 import { Button } from "../ui/button";
 import { useRouter } from "next/navigation";
-import { useRoomTypeAmenities, useRoomTypeImages } from "@/hooks/rooms/rooms";
+import {
+  useAvailableRoomsByType,
+  useRoomTypeAmenities,
+  useRoomTypeImages,
+} from "@/hooks/rooms/rooms";
 import { getFeatureIcon } from "../room/feature-icon";
 import { Skeleton } from "../ui/skeleton";
+import { useStore } from "@/lib/store";
 
 type RoomShowcaseCardProps = {
   room: RoomType;
@@ -31,10 +36,16 @@ export const RoomTypeShowcaseCard = ({ room }: RoomShowcaseCardProps) => {
     room.id
   );
 
-  const { data: rooms } = useAvailableRoomsByType({
-    roomType: room.id,
-    availableOnly: true,
-  });
+  const filters = useStore((state) => state.filters);
+  const checkIn = filters.checkIn;
+  const checkOut = filters.checkOut;
+
+  const { data: rooms, isLoading: isAvailableRoomsLoading } =
+    useAvailableRoomsByType(
+      room.id,
+      checkIn?.toISOString(),
+      checkOut?.toISOString()
+    );
 
   const isUnavailable = !rooms || rooms?.length === 0;
 
@@ -60,7 +71,7 @@ export const RoomTypeShowcaseCard = ({ room }: RoomShowcaseCardProps) => {
             Residential
           </Badge>
         )}
-        {isUnavailable && (
+        {isUnavailable && !isAvailableRoomsLoading && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
             <Badge variant="destructive" className="text-lg">
               Fully Booked

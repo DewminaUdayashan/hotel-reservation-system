@@ -68,7 +68,7 @@ const useAllRooms = (filters: RoomFilters) => {
   const axios = useAxios();
 
   return useQuery<RoomWithType[]>({
-    queryKey: ["availableRooms", filters],
+    queryKey: [queryKeys.availableRooms, filters],
     queryFn: async () => {
       const res = await axios.get<RoomWithType[]>("/rooms", {
         params: filters,
@@ -82,7 +82,7 @@ const useRoomById = (roomId?: number) => {
   const axios = useAxios();
 
   return useQuery<RoomWithType>({
-    queryKey: ["room", roomId],
+    queryKey: [queryKeys.rooms, roomId],
     queryFn: async () => {
       const res = await axios.get<RoomWithType>(`/rooms/${roomId}`);
       return res.data;
@@ -99,7 +99,7 @@ const useRoomAvailability = (
   const axios = useAxios();
 
   return useQuery({
-    queryKey: ["roomAvailability", roomId, checkIn, checkOut],
+    queryKey: [queryKeys.rooms, roomId, checkIn, checkOut],
     queryFn: async () => {
       const res = await axios.get(`/rooms/${roomId}/check-availability`, {
         params: { checkIn, checkOut },
@@ -114,12 +114,38 @@ const useRoomImages = (roomId?: number) => {
   const axios = useAxios();
 
   return useQuery<Image[]>({
-    queryKey: ["roomImages", roomId],
+    queryKey: [queryKeys.rooms, queryKeys.images, roomId],
     queryFn: async () => {
       const res = await axios.get(`/rooms/${roomId}/images`);
       return res.data;
     },
     enabled: !!roomId,
+  });
+};
+
+export const useAvailableRoomsByType = (
+  roomTypeId?: number,
+  checkIn?: string,
+  checkOut?: string
+) => {
+  const axios = useAxios();
+
+  return useQuery<Room[]>({
+    queryKey: [
+      queryKeys.rooms,
+      queryKeys.roomTypes,
+      queryKeys.availableRooms,
+      roomTypeId,
+      checkIn,
+      checkOut,
+    ],
+    queryFn: async () => {
+      const res = await axios.get(`/room-types/${roomTypeId}/available-rooms`, {
+        params: { checkIn, checkOut },
+      });
+      return res.data;
+    },
+    enabled: !!roomTypeId,
   });
 };
 
