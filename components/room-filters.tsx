@@ -6,7 +6,6 @@ import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
-import { useStore } from "@/lib/store";
 import { Badge } from "@/components/ui/badge";
 import { useRoomTypes } from "@/hooks/rooms/rooms";
 import { DateRangePicker } from "./shared/date-range-picker";
@@ -17,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useRoomFilterStore } from "@/lib/stores/useRoomFilterStore";
 
 type RoomFiltersProps = {
   onFilter?: () => void;
@@ -33,9 +33,9 @@ export function RoomFilters({
 }: RoomFiltersProps) {
   const { data: roomTypes } = useRoomTypes();
 
-  const filters = useStore((state) => state.filters);
-  const setFilters = useStore((state) => state.setFilters);
-  const clearFilters = useStore((state) => state.clearFilters);
+  const filters = useRoomFilterStore((state) => state.filters);
+  const setFilters = useRoomFilterStore((state) => state.setFilters);
+  const clearFilters = useRoomFilterStore((state) => state.clearFilters);
 
   const [dateRange, setDateRange] = useState<{
     from: Date | undefined;

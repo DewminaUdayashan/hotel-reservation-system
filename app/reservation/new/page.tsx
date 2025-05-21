@@ -38,10 +38,10 @@ import * as z from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
-import { useStore } from "@/lib/store";
 import { AuthDialog } from "@/components/auth-dialog";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useRoomById } from "@/hooks/rooms/rooms";
+import { useRoomFilterStore } from "@/lib/stores/useRoomFilterStore";
 
 // Form validation schema
 const formSchema = z
@@ -88,7 +88,7 @@ export default function NewReservationPage() {
   const [step, setStep] = useState(1);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
 
-  const filters = useStore((state) => state.filters);
+  const filters = useRoomFilterStore((state) => state.filters);
   const user = useAuth().user;
 
   // Check if user is logged in

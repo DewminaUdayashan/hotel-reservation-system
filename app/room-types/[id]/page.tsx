@@ -21,7 +21,6 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageCarousel } from "@/components/image-carousel";
-import { useStore } from "@/lib/store";
 import {
   useAvailableRoomsByType,
   useRoomTypeAmenities,
@@ -32,6 +31,7 @@ import {
 import { getFeatureIcon } from "@/components/room/feature-icon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MoreRoomTypesCard } from "@/components/room/more-room-types-card";
+import { useRoomFilterStore } from "@/lib/stores/useRoomFilterStore";
 
 export default function RoomTypeDetailsPage() {
   const params = useParams();
@@ -45,23 +45,23 @@ export default function RoomTypeDetailsPage() {
   const { data: images, isLoading: isImagesLoading } =
     useRoomTypeImages(roomTypeId);
 
-  const filters = useStore((state) => state.filters);
+  const filters = useRoomFilterStore((state) => state.filters);
+  const setFilters = useRoomFilterStore((state) => state.setFilters);
+
   const checkIn = filters.checkIn;
   const checkOut = filters.checkOut;
 
   const { data: rooms } = useAvailableRoomsByType(
     roomTypeId,
-    checkIn?.toISOString(),
-    checkOut?.toISOString()
+    checkIn?.toISOString() ?? undefined,
+    checkOut?.toISOString() ?? undefined
   );
 
   const availableRoomsCount = rooms?.length || 0;
 
-  const setFilters = useStore((state) => state.setFilters);
-
   const handleViewAvailableRooms = () => {
     // Update filters with the selected room type
-    // setFilters({ roomType: roomType });
+    setFilters({ roomType: roomType });
     // Navigate to rooms page
     router.push("/rooms");
   };

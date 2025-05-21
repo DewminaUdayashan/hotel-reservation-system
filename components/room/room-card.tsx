@@ -32,7 +32,9 @@ export const RoomCard = ({ room }: Props) => {
     room.type
   );
   const { data: amenities } = useRoomTypeAmenities(room.type);
+
   const router = useRouter();
+
   return (
     <Card
       key={room.id}

@@ -4,18 +4,19 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RoomFilters } from "@/components/room-filters";
-import { useStore } from "@/lib/store";
 import { RoomCard } from "@/components/room/room-card";
 import { useAllRooms } from "@/hooks/rooms/rooms";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRoomFilterStore } from "@/lib/stores/useRoomFilterStore";
 
 export default function RoomsPage() {
   const router = useRouter();
-  const filters = useStore((state) => state.filters);
+  const filters = useRoomFilterStore((state) => state.filters);
+  const clearFilters = useRoomFilterStore((state) => state.clearFilters);
 
   const { data: rooms, isLoading } = useAllRooms({
-    checkIn: filters.checkIn?.toISOString(),
-    checkOut: filters.checkOut?.toISOString(),
+    checkIn: filters.checkIn?.toISOString() ?? undefined,
+    checkOut: filters.checkOut?.toISOString() ?? undefined,
     capacity: filters.capacity,
     type: filters.roomType?.id,
     maxPrice: filters.maxPrice,
@@ -65,9 +66,7 @@ export default function RoomsPage() {
             <p className="text-muted-foreground mb-6">
               Try adjusting your filters or dates to see more options.
             </p>
-            <Button onClick={() => useStore.getState().clearFilters()}>
-              Clear All Filters
-            </Button>
+            <Button onClick={clearFilters}>Clear All Filters</Button>
           </div>
         )}
       </div>

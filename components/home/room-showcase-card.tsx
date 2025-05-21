@@ -21,7 +21,7 @@ import {
 } from "@/hooks/rooms/rooms";
 import { getFeatureIcon } from "../room/feature-icon";
 import { Skeleton } from "../ui/skeleton";
-import { useStore } from "@/lib/store";
+import { useRoomFilterStore } from "@/lib/stores/useRoomFilterStore";
 
 type RoomShowcaseCardProps = {
   room: RoomType;
@@ -32,19 +32,20 @@ export const RoomTypeShowcaseCard = ({ room }: RoomShowcaseCardProps) => {
 
   const { data: amenities, isLoading: isAmenitiesLoading } =
     useRoomTypeAmenities(room.id);
+
   const { data: images, isLoading: isImageLoading } = useRoomTypeImages(
     room.id
   );
 
-  const filters = useStore((state) => state.filters);
+  const filters = useRoomFilterStore((state) => state.filters);
   const checkIn = filters.checkIn;
   const checkOut = filters.checkOut;
 
   const { data: rooms, isLoading: isAvailableRoomsLoading } =
     useAvailableRoomsByType(
       room.id,
-      checkIn?.toISOString(),
-      checkOut?.toISOString()
+      checkIn?.toISOString() ?? undefined,
+      checkOut?.toISOString() ?? undefined
     );
 
   const isUnavailable = !rooms || rooms?.length === 0;

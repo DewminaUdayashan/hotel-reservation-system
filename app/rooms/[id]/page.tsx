@@ -9,7 +9,6 @@ import {
   Calendar,
   Check,
   ChevronRight,
-  Coffee,
   CreditCard,
   Users,
 } from "lucide-react";
@@ -25,7 +24,6 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageCarousel } from "@/components/image-carousel";
-import { useStore } from "@/lib/store";
 import { AuthDialog } from "@/components/auth-dialog";
 import {
   useAllRooms,
@@ -40,6 +38,7 @@ import { DateRangePicker } from "@/components/shared/date-range-picker";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MoreRoomCard } from "@/components/room/more-room-card";
 import { useAuth } from "@/hooks/auth/useAuth";
+import { useRoomFilterStore } from "@/lib/stores/useRoomFilterStore";
 
 export default function RoomDetailsPage() {
   const params = useParams();
@@ -59,7 +58,9 @@ export default function RoomDetailsPage() {
 
   const [showAuthDialog, setShowAuthDialog] = useState(false);
 
-  const filters = useStore((state) => state.filters);
+  const filters = useRoomFilterStore((state) => state.filters);
+  const setFilters = useRoomFilterStore((state) => state.setFilters);
+
   const checkIn = filters.checkIn;
   const checkOut = filters.checkOut;
   const capacity = filters.capacity;
@@ -72,14 +73,14 @@ export default function RoomDetailsPage() {
   const { data: isAvailable, isLoading: isCheckingAvailability } =
     useRoomAvailability(
       roomId,
-      checkIn?.toISOString(),
-      checkOut?.toISOString()
+      checkIn?.toISOString() ?? undefined,
+      checkOut?.toISOString() ?? undefined
     );
 
   const { data: similarRooms } = useAllRooms({
     capacity,
-    checkIn: checkIn?.toISOString(),
-    checkOut: checkOut?.toISOString(),
+    checkIn: checkIn?.toISOString() ?? undefined,
+    checkOut: checkOut?.toISOString() ?? undefined,
     maxPrice,
     minPrice,
     type,
@@ -436,12 +437,10 @@ export default function RoomDetailsPage() {
                       to: filters.checkOut,
                     }}
                     onSelect={(range) => {
-                      useStore.setState({
-                        filters: {
-                          ...filters,
-                          checkIn: range.from,
-                          checkOut: range.to,
-                        },
+                      setFilters({
+                        ...filters,
+                        checkIn: range.from,
+                        checkOut: range.to,
                       });
                     }}
                     popOverTrigger={
