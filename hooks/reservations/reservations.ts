@@ -1,5 +1,6 @@
 import { useAxios } from "@/lib/axios";
 import {
+  ReservationDetails,
   ReservationWithAdditionalDetails,
   ReserveRoomInput,
 } from "@/lib/types/reservation";
@@ -34,5 +35,18 @@ export const useUserReservations = (page = 1, pageSize = 10) => {
       });
       return res.data;
     },
+  });
+};
+
+export const useReservationById = (reservationId?: number) => {
+  const axios = useAxios();
+
+  return useQuery<ReservationDetails>({
+    queryKey: [queryKeys.reservations, reservationId],
+    queryFn: async () => {
+      const res = await axios.get(`/reservations/${reservationId}`);
+      return res.data;
+    },
+    enabled: !!reservationId,
   });
 };

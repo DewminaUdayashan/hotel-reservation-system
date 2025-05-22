@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import {
   ArrowLeft,
@@ -37,11 +36,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
+import { useReservationById } from "@/hooks/reservations/reservations";
+import { ReservationStatusBadge } from "@/components/reservations/reservation-status-badge";
+import { ReservationPaymentStatusBadge } from "@/components/reservations/reservation-payment-status-badge";
+import { AdminOnly } from "@/components/admin-only";
 
 export default function ReservationDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const reservationId = params?.id;
+  const reservationId = Number.parseInt(params?.id as string, 10);
 
   const [checkOutDate, setCheckOutDate] = useState<Date | undefined>(undefined);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
@@ -49,49 +52,7 @@ export default function ReservationDetailsPage() {
   const [isChangingDates, setIsChangingDates] = useState(false);
 
   // Mock data fetching with TanStack Query
-  const { data: reservation, isLoading } = useQuery({
-    queryKey: ["reservation", reservationId],
-    queryFn: () => {
-      // This would be an API call in a real application
-      return {
-        id: reservationId,
-        customerName: "John Smith",
-        email: "john.smith@example.com",
-        phone: "+1 (555) 123-4567",
-        roomType: "Deluxe Room",
-        roomNumber: "103",
-        checkIn: new Date("2023-06-15"),
-        checkOut: new Date("2023-06-18"),
-        guests: 2,
-        status: "reserved", // reserved, checked-in, checked-out, cancelled, no-show
-        paymentStatus: "pending", // pending, paid, partial, refunded
-        paymentMethod: "credit-card",
-        totalAmount: 540,
-        additionalCharges: [
-          {
-            id: 1,
-            description: "Room Service",
-            amount: 45,
-            date: new Date("2023-06-16"),
-          },
-          {
-            id: 2,
-            description: "Restaurant",
-            amount: 78,
-            date: new Date("2023-06-17"),
-          },
-        ],
-        specialRequests: "Late check-in, room with a view if possible.",
-        createdAt: new Date("2023-05-20"),
-        creditCardDetails: {
-          last4: "1234",
-          expiryDate: "05/25",
-          cardholderName: "John Smith",
-        },
-      };
-    },
-    initialData: null,
-  });
+  const { data: reservation, isLoading } = useReservationById(reservationId);
 
   if (isLoading || !reservation) {
     return (
@@ -110,11 +71,13 @@ export default function ReservationDetailsPage() {
     );
   }
 
+  const customerName = `${reservation.firstName} ${reservation.lastName}`;
+
   const handleCheckIn = () => {
     // This would be an API call in a real application
     toast({
       title: "Check-in successful",
-      description: `${reservation.customerName} has been checked in to room ${reservation.roomNumber}.`,
+      description: `${customerName} has been checked in to room ${reservation.roomId}.`,
     });
     setIsCheckingIn(false);
   };
@@ -123,7 +86,7 @@ export default function ReservationDetailsPage() {
     // This would be an API call in a real application
     toast({
       title: "Check-out successful",
-      description: `${reservation.customerName} has been checked out.`,
+      description: `${customerName} has been checked out.`,
     });
     setIsCheckingOut(false);
   };
@@ -149,46 +112,7 @@ export default function ReservationDetailsPage() {
     setIsChangingDates(false);
   };
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "checked-in":
-        return <Badge className="bg-green-500">Checked In</Badge>;
-      case "checked-out":
-        return <Badge variant="outline">Checked Out</Badge>;
-      case "reserved":
-        return <Badge className="bg-blue-500">Reserved</Badge>;
-      case "cancelled":
-        return <Badge variant="destructive">Cancelled</Badge>;
-      case "no-show":
-        return <Badge variant="destructive">No Show</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
-
-  const getPaymentStatusBadge = (status) => {
-    switch (status) {
-      case "paid":
-        return <Badge className="bg-green-500">Paid</Badge>;
-      case "pending":
-        return (
-          <Badge variant="outline" className="border-amber-500 text-amber-500">
-            Pending
-          </Badge>
-        );
-      case "partial":
-        return <Badge className="bg-blue-500">Partial</Badge>;
-      case "refunded":
-        return <Badge variant="secondary">Refunded</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
-
-  const totalAdditionalCharges = reservation.additionalCharges.reduce(
-    (sum, charge) => sum + charge.amount,
-    0
-  );
+  const totalAdditionalCharges = 100;
 
   const grandTotal = reservation.totalAmount + totalAdditionalCharges;
 
@@ -215,7 +139,7 @@ export default function ReservationDetailsPage() {
             <Printer className="mr-2 h-4 w-4" />
             Print
           </Button>
-          {reservation.status === "reserved" && (
+          {reservation.status === "confirmed" && (
             <Dialog open={isCheckingIn} onOpenChange={setIsCheckingIn}>
               <DialogTrigger asChild>
                 <Button size="sm">
@@ -227,16 +151,13 @@ export default function ReservationDetailsPage() {
                 <DialogHeader>
                   <DialogTitle>Check In Guest</DialogTitle>
                   <DialogDescription>
-                    Confirm check-in for {reservation.customerName}.
+                    Confirm check-in for {customerName}.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
                     <Label htmlFor="room-number">Room Number</Label>
-                    <Input
-                      id="room-number"
-                      defaultValue={reservation.roomNumber}
-                    />
+                    <Input id="room-number" defaultValue={reservation.roomId} />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="key-issued">Key Card Number</Label>
@@ -277,7 +198,7 @@ export default function ReservationDetailsPage() {
                 <DialogHeader>
                   <DialogTitle>Check Out Guest</DialogTitle>
                   <DialogDescription>
-                    Confirm check-out for {reservation.customerName}.
+                    Confirm check-out for {customerName}.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
@@ -337,13 +258,13 @@ export default function ReservationDetailsPage() {
                 <div>
                   <div className="font-medium">{reservation.roomType}</div>
                   <div className="text-sm text-muted-foreground">
-                    Room {reservation.roomNumber}
+                    Room {reservation.roomId}
                   </div>
                 </div>
               </div>
               <div className="text-right">
                 <div className="font-medium">Status</div>
-                <div>{getStatusBadge(reservation.status)}</div>
+                <ReservationStatusBadge status={reservation.status} />
               </div>
             </div>
             <Separator />
@@ -360,7 +281,7 @@ export default function ReservationDetailsPage() {
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span>{format(reservation.checkOut, "MMMM dd, yyyy")}</span>
-                  {(reservation.status === "reserved" ||
+                  {(reservation.status === "confirmed" ||
                     reservation.status === "checked-in") && (
                     <Dialog
                       open={isChangingDates}
@@ -438,47 +359,50 @@ export default function ReservationDetailsPage() {
                       <div>Room Charge ({reservation.roomType})</div>
                       <div>${reservation.totalAmount.toFixed(2)}</div>
                     </div>
-                    {reservation.additionalCharges.map((charge) => (
-                      <div
-                        key={charge.id}
-                        className="flex items-center justify-between"
-                      >
-                        <div className="flex items-center gap-2">
-                          {charge.description === "Room Service" ? (
-                            <Utensils className="h-4 w-4 text-muted-foreground" />
-                          ) : charge.description === "Restaurant" ? (
-                            <Utensils className="h-4 w-4 text-muted-foreground" />
-                          ) : charge.description === "Wifi" ? (
-                            <Wifi className="h-4 w-4 text-muted-foreground" />
-                          ) : (
-                            <CreditCard className="h-4 w-4 text-muted-foreground" />
-                          )}
-                          <span>{charge.description}</span>
-                          <span className="text-xs text-muted-foreground">
-                            ({format(charge.date, "MMM dd")})
-                          </span>
+                    {reservation.additionalCharges &&
+                      reservation.additionalCharges.map((charge) => (
+                        <div
+                          key={charge.id}
+                          className="flex items-center justify-between"
+                        >
+                          <div className="flex items-center gap-2">
+                            {charge.description === "Room Service" ? (
+                              <Utensils className="h-4 w-4 text-muted-foreground" />
+                            ) : charge.description === "Restaurant" ? (
+                              <Utensils className="h-4 w-4 text-muted-foreground" />
+                            ) : charge.description === "Wifi" ? (
+                              <Wifi className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <CreditCard className="h-4 w-4 text-muted-foreground" />
+                            )}
+                            <span>{charge.description}</span>
+                            <span className="text-xs text-muted-foreground">
+                              ({format(charge.date, "MMM dd")})
+                            </span>
+                          </div>
+                          <div>${charge.amount.toFixed(2)}</div>
                         </div>
-                        <div>${charge.amount.toFixed(2)}</div>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between font-medium">
                     <div>Total</div>
                     <div>${grandTotal.toFixed(2)}</div>
                   </div>
-                  <Button variant="outline" size="sm" className="w-full">
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    Add Charge
-                  </Button>
+                  <AdminOnly>
+                    <Button variant="outline" size="sm" className="w-full">
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      Add Charge
+                    </Button>
+                  </AdminOnly>
                 </TabsContent>
                 <TabsContent value="payment" className="space-y-4 pt-4">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="font-medium">Payment Status</div>
-                      <div>
-                        {getPaymentStatusBadge(reservation.paymentStatus)}
-                      </div>
+                      <ReservationPaymentStatusBadge
+                        status={reservation.paymentStatus}
+                      />
                     </div>
                     <div className="flex items-center justify-between">
                       <div>Payment Method</div>
@@ -493,12 +417,13 @@ export default function ReservationDetailsPage() {
                         </span>
                       </div>
                     </div>
-                    {reservation.creditCardDetails && (
+                    {reservation.card && (
                       <div className="flex items-center justify-between">
                         <div>Card Details</div>
                         <div className="text-sm">
-                          **** **** **** {reservation.creditCardDetails.last4}{" "}
-                          (Expires: {reservation.creditCardDetails.expiryDate})
+                          **** **** **** {reservation.card.cardNumber} (Expires:{" "}
+                          {reservation.card.expiryMonth}/
+                          {reservation.card.expiryYear})
                         </div>
                       </div>
                     )}
@@ -515,7 +440,7 @@ export default function ReservationDetailsPage() {
                         $
                         {reservation.paymentStatus === "paid"
                           ? grandTotal.toFixed(2)
-                          : reservation.paymentStatus === "partial"
+                          : reservation.paymentStatus === "partially_paid"
                           ? (grandTotal * 0.5).toFixed(2)
                           : "0.00"}
                       </div>
@@ -526,16 +451,18 @@ export default function ReservationDetailsPage() {
                         $
                         {reservation.paymentStatus === "paid"
                           ? "0.00"
-                          : reservation.paymentStatus === "partial"
+                          : reservation.paymentStatus === "partially_paid"
                           ? (grandTotal * 0.5).toFixed(2)
                           : grandTotal.toFixed(2)}
                       </div>
                     </div>
                   </div>
-                  <Button size="sm" className="w-full">
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    Collect Payment
-                  </Button>
+                  <AdminOnly>
+                    <Button size="sm" className="w-full">
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      Collect Payment
+                    </Button>
+                  </AdminOnly>
                 </TabsContent>
               </Tabs>
             </div>
@@ -551,7 +478,7 @@ export default function ReservationDetailsPage() {
                 <User className="h-6 w-6 text-muted-foreground" />
               </div>
               <div>
-                <div className="font-medium">{reservation.customerName}</div>
+                <div className="font-medium">{customerName}</div>
                 <div className="text-sm text-muted-foreground">Guest</div>
               </div>
             </div>
@@ -577,10 +504,12 @@ export default function ReservationDetailsPage() {
             <div className="space-y-2">
               <div className="text-sm font-medium">Actions</div>
               <div className="grid gap-2">
-                <Button variant="outline" size="sm" className="w-full">
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit Customer
-                </Button>
+                <AdminOnly>
+                  <Button variant="outline" size="sm" className="w-full">
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit Customer
+                  </Button>
+                </AdminOnly>
                 <Button variant="outline" size="sm" className="w-full">
                   <Trash className="mr-2 h-4 w-4" />
                   Cancel Reservation

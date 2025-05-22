@@ -40,6 +40,26 @@ export type ReservationWithAdditionalDetails = Reservation & {
   roomType: string;
 };
 
+export type ReservationDetails = ReservationWithAdditionalDetails & {
+  // Customer details
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+
+  // Credit card details
+  card?: CardDetails;
+};
+
+export type CardDetails = {
+  cardHolderName: string;
+  cardNumber: string;
+  cardType: string;
+  expiryMonth: number;
+  expiryYear: number;
+  cvv: string;
+};
+
 export type ReserveRoomInput = {
   customerId: number;
   roomId: number;
