@@ -32,3 +32,12 @@ export type Reservation = {
   specialRequests: string;
   createdAt: Date;
 };
+
+export type ReserveRoomInput = {
+  customerId: number;
+  roomId: number;
+  checkInDate: string;
+  checkOutDate: string;
+  numberOfGuests: number;
+  specialRequests?: string;
+};

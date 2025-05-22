@@ -19,13 +19,6 @@ export async function getConnection() {
     throw err;
   }
 }
-export async function closeConnection() {
-  try {
-    await sql.close();
-  } catch (err) {
-    console.error("Error closing database connection: ", err);
-  }
-}
 
 /**
  * Executes a query with optional parameters.
@@ -52,7 +45,5 @@ export async function executeQuery(
   } catch (err) {
     console.error("Error executing query: ", err);
     throw err;
-  } finally {
-    await closeConnection();
   }
 }

@@ -1,8 +1,16 @@
+"use client";
+
 import Link from "next/link";
 import { Button } from "../ui/button";
-import { Hotel, User } from "lucide-react";
+import { Hotel, LogOutIcon, User } from "lucide-react";
+import { AuthDialog } from "../auth-dialog";
+import { useState } from "react";
+import { useAuth } from "@/hooks/auth/useAuth";
+import { toast } from "@/hooks/use-toast";
 
 export function Header() {
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const { user, logout } = useAuth();
   return (
     <header className="border-b">
       <div className="container flex h-16 items-center justify-between px-4 md:px-6">
@@ -47,14 +55,31 @@ export function Header() {
               Staff Portal
             </Button>
           </Link>
-          <Link href="/auth/login">
-            <Button size="sm">
+
+          {!user ? (
+            <Button size="sm" onClick={() => setShowAuthDialog(true)}>
               <User className="h-4 w-4 mr-2" />
               Login
             </Button>
-          </Link>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                logout();
+              }}
+            >
+              <LogOutIcon className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
+          )}
         </div>
       </div>
+      <AuthDialog
+        open={showAuthDialog}
+        onOpenChange={(open) => setShowAuthDialog(open)}
+        onSuccess={() => setShowAuthDialog(false)}
+      />
     </header>
   );
 }

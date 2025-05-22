@@ -5,6 +5,7 @@ import { Providers } from "./providers";
 import { Footer } from "@/components/home/footer";
 import { Header } from "@/components/home/header";
 import { AuthProvider } from "@/context/AuthContext";
+import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
   title: "LuxeStay Hotels - Hotel Reservation System",
@@ -24,6 +25,7 @@ export default function RootLayout({
           <Header />
           {children}
           <Footer />
+          <Toaster />
         </Providers>
       </body>
     </html>
