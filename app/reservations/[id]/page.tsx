@@ -281,50 +281,47 @@ export default function ReservationDetailsPage() {
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span>{format(reservation.checkOut, "MMMM dd, yyyy")}</span>
-                  {(reservation.status === "confirmed" ||
-                    reservation.status === "checked-in") && (
-                    <Dialog
-                      open={isChangingDates}
-                      onOpenChange={setIsChangingDates}
-                    >
-                      <DialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <Edit className="h-4 w-4" />
-                          <span className="sr-only">Change date</span>
+                  {/* <Dialog
+                    open={isChangingDates}
+                    onOpenChange={setIsChangingDates}
+                  >
+                    <DialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Edit className="h-4 w-4" />
+                        <span className="sr-only">Change date</span>
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Change Check-out Date</DialogTitle>
+                        <DialogDescription>
+                          Select a new check-out date for this reservation.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="py-4">
+                        <CalendarComponent
+                          mode="single"
+                          selected={checkOutDate}
+                          onSelect={setCheckOutDate}
+                          initialFocus
+                          disabled={(date) =>
+                            date < new Date(reservation.checkIn)
+                          }
+                        />
+                      </div>
+                      <DialogFooter>
+                        <Button
+                          variant="outline"
+                          onClick={() => setIsChangingDates(false)}
+                        >
+                          Cancel
                         </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Change Check-out Date</DialogTitle>
-                          <DialogDescription>
-                            Select a new check-out date for this reservation.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="py-4">
-                          <CalendarComponent
-                            mode="single"
-                            selected={checkOutDate}
-                            onSelect={setCheckOutDate}
-                            initialFocus
-                            disabled={(date) =>
-                              date < new Date(reservation.checkIn)
-                            }
-                          />
-                        </div>
-                        <DialogFooter>
-                          <Button
-                            variant="outline"
-                            onClick={() => setIsChangingDates(false)}
-                          >
-                            Cancel
-                          </Button>
-                          <Button onClick={handleChangeCheckoutDate}>
-                            Save Changes
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                  )}
+                        <Button onClick={handleChangeCheckoutDate}>
+                          Save Changes
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog> */}
                 </div>
               </div>
             </div>
@@ -504,13 +501,18 @@ export default function ReservationDetailsPage() {
             <div className="space-y-2">
               <div className="text-sm font-medium">Actions</div>
               <div className="grid gap-2">
-                <AdminOnly>
-                  <Button variant="outline" size="sm" className="w-full">
-                    <Edit className="mr-2 h-4 w-4" />
-                    Edit Customer
-                  </Button>
-                </AdminOnly>
-                <Button variant="outline" size="sm" className="w-full">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() =>
+                    router.push(`/reservations/${reservationId}/edit`)
+                  }
+                >
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </Button>
+                <Button variant="destructive" size="sm" className="w-full">
                   <Trash className="mr-2 h-4 w-4" />
                   Cancel Reservation
                 </Button>

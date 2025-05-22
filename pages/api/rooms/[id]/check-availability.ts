@@ -6,7 +6,7 @@ export default async function handler(
   res: NextApiResponse
 ) {
   const {
-    query: { id, checkIn, checkOut },
+    query: { id, checkIn, checkOut, userId },
     method,
   } = req;
 
@@ -16,11 +16,12 @@ export default async function handler(
 
   try {
     const result = await executeQuery(
-      "EXEC IsRoomAvailable @roomId, @checkIn, @checkOut",
+      "EXEC IsRoomAvailable @roomId, @checkIn, @checkOut, @userId",
       [
         { name: "roomId", value: Number(id) },
-        { name: "checkIn", value: checkIn },
-        { name: "checkOut", value: checkOut },
+        { name: "checkIn", value: checkIn || null },
+        { name: "checkOut", value: checkOut || null },
+        { name: "userId", value: userId ? Number(userId) : null },
       ]
     );
 

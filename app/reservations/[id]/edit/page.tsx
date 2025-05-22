@@ -2,8 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { format } from "date-fns";
-import { CalendarIcon, ChevronLeft, CreditCard, Hotel } from "lucide-react";
+import { addHours, format, isBefore } from "date-fns";
+import {
+  AlertCircle,
+  CalendarIcon,
+  CheckCircle,
+  ChevronLeft,
+  CreditCard,
+  Hotel,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -40,9 +47,22 @@ import { cn } from "@/lib/utils";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { toast } from "@/components/ui/use-toast";
-import { Toaster } from "@/components/ui/toaster";
-import { useRoomFilterStore } from "@/lib/stores/useRoomFilterStore";
+import {
+  useReservationById,
+  useUpdateReservation,
+} from "@/hooks/reservations/reservations";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useRoomAvailability } from "@/hooks/rooms/rooms";
+import { useAuth } from "@/hooks/auth/useAuth";
+import { toast } from "@/hooks/use-toast";
 
 // Form validation schema
 const formSchema = z.object({
@@ -53,7 +73,9 @@ const formSchema = z.object({
 export default function EditReservationPage() {
   const params = useParams();
   const router = useRouter();
-  const reservationId = params?.id as string;
+  const reservationId = Number.parseInt(params?.id as string, 10);
+
+  const { user } = useAuth();
 
   const [dateRange, setDateRange] = useState<{
     from: Date | undefined;
@@ -63,13 +85,29 @@ export default function EditReservationPage() {
     to: undefined,
   });
 
-  const { reservations, updateReservation } = useRoomFilterStore((state) => ({
-    reservations: state.reservations,
-    updateReservation: state.updateReservation,
-  }));
+  const [tmpDateRange, setTmpDateRange] = useState<{
+    from: Date | undefined;
+    to: Date | undefined;
+  }>({
+    from: undefined,
+    to: undefined,
+  });
 
-  // Find the reservation
-  const reservation = reservations.find((res) => res.id === reservationId);
+  const [isCheckInWithin24Hours, setIsCheckInWithin24Hours] = useState(false);
+
+  const [dateDialogOpen, setDateDialogOpen] = useState(false);
+
+  const { data: reservation } = useReservationById(reservationId);
+
+  const { data: isAvailable, isLoading: checkingAvailability } =
+    useRoomAvailability(
+      reservation?.roomId,
+      tmpDateRange?.from?.toISOString(),
+      tmpDateRange?.to?.toISOString(),
+      user?.id
+    );
+
+  const updateReservationMutation = useUpdateReservation(reservationId);
 
   // Initialize form with values from the reservation
   const form = useForm<z.infer<typeof formSchema>>({
@@ -84,6 +122,10 @@ export default function EditReservationPage() {
   useEffect(() => {
     if (reservation) {
       setDateRange({
+        from: new Date(reservation.checkIn),
+        to: new Date(reservation.checkOut),
+      });
+      setTmpDateRange({
         from: new Date(reservation.checkIn),
         to: new Date(reservation.checkOut),
       });
@@ -117,21 +159,65 @@ export default function EditReservationPage() {
         nights;
     }
 
-    // Update reservation
-    updateReservation(reservationId, {
-      checkIn: dateRange.from || new Date(reservation.checkIn),
-      checkOut: dateRange.to || new Date(reservation.checkOut),
-      guests: Number.parseInt(values.guests),
-      specialRequests: values.specialRequests || "",
-      totalAmount,
-    });
-
-    toast({
-      title: "Reservation updated",
-      description: "Your reservation has been successfully updated.",
-    });
+    // // Update reservation
+    updateReservationMutation.mutate(
+      {
+        reservationId,
+        checkInDate: dateRange.from?.toISOString(),
+        checkOutDate: dateRange.to?.toISOString(),
+        numberOfGuests: Number.parseInt(values.guests),
+        specialRequests: values.specialRequests || "",
+        totalAmount,
+      },
+      {
+        onSuccess: () => {
+          toast({
+            title: "Reservation updated",
+            description: "Your reservation has been successfully updated.",
+            variant: "default",
+          });
+          router.push(`/reservations/${reservationId}`);
+        },
+        onError: () => {
+          toast({
+            title: "Error updating reservation",
+            description: "There was an error updating your reservation.",
+            variant: "destructive",
+          });
+        },
+      }
+    );
 
     router.push(`/reservations/${reservationId}`);
+  };
+
+  useEffect(() => {
+    if (reservation) {
+      const checkInDate = new Date(reservation.checkIn);
+      const checkOutDate = new Date(reservation.checkOut);
+
+      setDateRange({
+        from: checkInDate,
+        to: checkOutDate,
+      });
+
+      setTmpDateRange({
+        from: checkInDate,
+        to: checkOutDate,
+      });
+
+      // Check if check-in date is within 24 hours
+      const now = new Date();
+      const twentyFourHoursFromNow = addHours(now, 24);
+      setIsCheckInWithin24Hours(isBefore(checkInDate, twentyFourHoursFromNow));
+    }
+  }, [reservation]);
+
+  const handleConfirmDates = () => {
+    if (tmpDateRange.from && tmpDateRange.to) {
+      setDateRange(tmpDateRange);
+      setDateDialogOpen(false);
+    }
   };
 
   if (!reservation) {
@@ -214,8 +300,7 @@ export default function EditReservationPage() {
                         <div className="flex items-center h-10 px-3 rounded-md border">
                           <Hotel className="mr-2 h-4 w-4 text-muted-foreground" />
                           <span>
-                            {reservation.roomType} (Room{" "}
-                            {reservation.roomNumber})
+                            {reservation.roomType} (Room {reservation.roomId})
                           </span>
                         </div>
                         <p className="text-sm text-muted-foreground mt-1">
@@ -262,6 +347,7 @@ export default function EditReservationPage() {
                                 "w-full justify-start text-left font-normal",
                                 !dateRange.from && "text-muted-foreground"
                               )}
+                              onClick={() => setDateDialogOpen(true)}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4" />
                               {dateRange.from ? (
@@ -284,7 +370,12 @@ export default function EditReservationPage() {
                               mode="range"
                               defaultMonth={dateRange.from}
                               selected={dateRange}
-                              onSelect={setDateRange}
+                              onSelect={(range) =>
+                                setDateRange({
+                                  from: range?.from,
+                                  to: range?.to,
+                                })
+                              }
                               numberOfMonths={2}
                               disabled={(date) => date < new Date()}
                             />
@@ -323,7 +414,14 @@ export default function EditReservationPage() {
                     >
                       Cancel
                     </Button>
-                    <Button type="submit">Save Changes</Button>
+                    <Button
+                      type="submit"
+                      disabled={updateReservationMutation.isPending}
+                    >
+                      {updateReservationMutation.isPending
+                        ? "Saving..."
+                        : "Save Changes"}
+                    </Button>
                   </div>
                 </form>
               </Form>
@@ -380,8 +478,93 @@ export default function EditReservationPage() {
           </Card>
         </div>
       </div>
+      {/* Date Selection Dialog */}
+      <Dialog open={dateDialogOpen} onOpenChange={setDateDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] md:max-w-[700px]">
+          <DialogHeader>
+            <DialogTitle>Select Stay Dates</DialogTitle>
+            <DialogDescription>
+              Choose your check-in and check-out dates for your stay.
+            </DialogDescription>
+          </DialogHeader>
 
-      <Toaster />
+          {isCheckInWithin24Hours && (
+            <Alert className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Your check-in date is within 24 hours and cannot be modified.
+                You can only change your check-out date.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {checkingAvailability ? (
+            <div className="text-center py-4">Checking availability...</div>
+          ) : isAvailable === false ? (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                The room is not available for the selected dates. Please choose
+                different dates.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Alert variant="default" className="mb-4 text-green-600">
+              <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+              <AlertDescription className="text-green-600">
+                The room is available for you on the selected dates.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <div className="py-4">
+            <Calendar
+              initialFocus
+              mode="range"
+              defaultMonth={tmpDateRange.from}
+              selected={tmpDateRange}
+              onSelect={(range) => {
+                if (isCheckInWithin24Hours) {
+                  // Only allow changing check-out date
+                  setTmpDateRange({
+                    from: dateRange.from,
+                    to: range?.to,
+                  });
+                } else {
+                  setTmpDateRange({
+                    from: range?.from,
+                    to: range?.to,
+                  });
+                }
+              }}
+              numberOfMonths={2}
+              disabled={(date) => {
+                // Disable dates in the past
+                if (date < new Date()) return true;
+
+                // If check-in is within 24 hours, disable all dates before current check-in
+                if (isCheckInWithin24Hours && dateRange.from) {
+                  return date < dateRange.from;
+                }
+
+                return false;
+              }}
+            />
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDateDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmDates}
+              disabled={!tmpDateRange.from || !tmpDateRange.to}
+            >
+              Confirm Dates
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -68,3 +68,12 @@ export type ReserveRoomInput = {
   numberOfGuests: number;
   specialRequests?: string;
 };
+
+export type UpdateReservationInput = {
+  reservationId: number;
+  checkInDate?: string;
+  checkOutDate?: string;
+  numberOfGuests?: number;
+  specialRequests?: string;
+  totalAmount?: number;
+};
