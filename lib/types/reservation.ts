@@ -1,9 +1,11 @@
 export type ReservationStatus =
-  | "reserved"
+  | "pending"
+  | "confirmed"
   | "checked-in"
   | "checked-out"
-  | "canceled";
-export type PaymentStatus = "paid" | "pending" | "partial" | "failed";
+  | "canceled"
+  | "no-show";
+export type PaymentStatus = "paid" | "unpaid" | "partially_paid";
 export type PaymentMethod =
   | "credit-card"
   | "debit-card"
@@ -31,6 +33,11 @@ export type Reservation = {
   additionalCharges: AdditionalCharge[];
   specialRequests: string;
   createdAt: Date;
+};
+
+export type ReservationWithAdditionalDetails = Reservation & {
+  roomName: string;
+  roomType: string;
 };
 
 export type ReserveRoomInput = {

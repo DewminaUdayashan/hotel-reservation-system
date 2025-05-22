@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { executeQuery } from "@/lib/db";
+import { getUserFromToken } from "@/lib/auth";
 
 export default async function handler(
   req: NextApiRequest,
@@ -8,23 +9,15 @@ export default async function handler(
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const user = getUserFromToken(token);
+  if (!user?.id) return res.status(401).json({ error: "Invalid user token" });
 
-  const {
-    customerId,
-    roomId,
-    checkInDate,
-    checkOutDate,
-    numberOfGuests,
-    specialRequests,
-  } = req.body;
+  const { roomId, checkInDate, checkOutDate, numberOfGuests, specialRequests } =
+    req.body;
 
-  if (
-    !customerId ||
-    !roomId ||
-    !checkInDate ||
-    !checkOutDate ||
-    !numberOfGuests
-  ) {
+  if (!roomId || !checkInDate || !checkOutDate || !numberOfGuests) {
     return res.status(400).json({ error: "Missing required fields" });
   }
 
@@ -32,7 +25,7 @@ export default async function handler(
     const result = await executeQuery(
       "EXEC ReserveRoom @customerId, @roomId, @checkInDate, @checkOutDate, @numberOfGuests, @specialRequests",
       [
-        { name: "customerId", value: customerId },
+        { name: "customerId", value: user.id },
         { name: "roomId", value: roomId },
         { name: "checkInDate", value: checkInDate },
         { name: "checkOutDate", value: checkOutDate },

@@ -22,6 +22,26 @@ BEGIN
         RETURN;
     END
 
+    -- Get roomTypeId and price
+    DECLARE @roomTypeId INT, @price DECIMAL(10,2);
+    SELECT 
+        @roomTypeId = r.type,
+        @price = rt.price
+    FROM Rooms r
+    INNER JOIN RoomTypes rt ON r.type = rt.id
+    WHERE r.id = @roomId;
+
+    -- Calculate nights
+    DECLARE @nights INT = DATEDIFF(DAY, @checkInDate, @checkOutDate);
+    IF @nights <= 0
+    BEGIN
+        RAISERROR('Check-out date must be after check-in date.', 16, 1);
+        RETURN;
+    END
+
+    DECLARE @roomCharge DECIMAL(10,2) = @nights * @price;
+
+    -- Insert Reservation
     INSERT INTO Reservations (
         customerId,
         roomId,
@@ -43,5 +63,83 @@ BEGIN
         @specialRequests
     );
 
-    SELECT SCOPE_IDENTITY() AS reservationId;
+    DECLARE @reservationId INT = SCOPE_IDENTITY();
+
+    -- Create Invoice
+    INSERT INTO Invoices (
+        reservationId,
+        invoiceDate,
+        dueDate,
+        totalAmount,
+        status,
+        paymentMethod
+    )
+    VALUES (
+        @reservationId,
+        GETDATE(),
+        @checkInDate,              -- Due at check-in
+        @roomCharge,
+        'unpaid',
+        NULL
+    );
+
+    DECLARE @invoiceId INT = SCOPE_IDENTITY();
+
+    -- Add Invoice Line Item for room charge
+    INSERT INTO InvoiceLineItems (
+        invoiceId,
+        description,
+        amount,
+        serviceTypeId  -- NULL for room charge
+    )
+    VALUES (
+        @invoiceId,
+        CONCAT('Room charge for ', @nights, ' night(s)'),
+        @roomCharge,
+        NULL
+    );
+
+    SELECT @reservationId AS reservationId;
+END;
+
+
+CREATE OR ALTER PROCEDURE GetUserReservationsPaginated
+    @userId INT,
+    @page INT = 1,
+    @pageSize INT = 10
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @offset INT = (@page - 1) * @pageSize;
+
+    SELECT 
+        r.id,
+        r.customerId,
+        r.roomId,
+        r.checkInDate AS checkIn,
+        r.checkOutDate AS checkOut,
+        r.numberOfGuests AS guests,
+        r.status,
+
+        -- Payment details from Invoice
+        ISNULL(i.status, 'unpaid') AS paymentStatus,
+        ISNULL(i.paymentMethod, 'cash') AS paymentMethod,
+        ISNULL(i.totalAmount, 0.00) AS totalAmount,
+
+        r.specialRequests,
+        r.createdAt,
+
+        -- Additional fields
+        rm.name AS roomName,
+        rt.name AS roomType
+
+    FROM Reservations r
+    INNER JOIN Rooms rm ON r.roomId = rm.id
+    INNER JOIN RoomTypes rt ON rm.type = rt.id
+    LEFT JOIN Invoices i ON i.reservationId = r.id
+
+    WHERE r.customerId = @userId
+    ORDER BY r.createdAt DESC
+    OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY;
 END;

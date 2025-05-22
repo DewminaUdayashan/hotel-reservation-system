@@ -37,37 +37,37 @@ import { AuthDialog } from "@/components/auth-dialog";
 import { toast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { useAuth } from "@/hooks/auth/useAuth";
+import { useUserReservations } from "@/hooks/reservations/reservations";
+import { PaymentStatus, ReservationStatus } from "@/lib/types/reservation";
 
 export default function ReservationsPage() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [selectedReservation, setSelectedReservation] = useState<string | null>(
+  const [selectedReservation, setSelectedReservation] = useState<number | null>(
     null
   );
 
-  const user = useAuth().user;
-  const reservations = [];
+  const { user } = useAuth();
+  const { data: reservations } = useUserReservations();
   const cancelReservation = () => {};
 
   // Check if user is logged in
   useEffect(() => {
     // Only show auth dialog on initial render if user is not logged in
-    if (!user && !showAuthDialog) {
-      setShowAuthDialog(true);
-    }
-  }, []); // Empty dependency array to run only once
+    setShowAuthDialog(!user);
+  }, [user]);
 
   // Filter reservations
-  const filteredReservations = reservations.filter((res) => {
+  const filteredReservations = reservations?.filter((res) => {
     if (!searchTerm) return true;
 
     const searchLower = searchTerm.toLowerCase();
     return (
-      res.id.toLowerCase().includes(searchLower) ||
-      res.customerName?.toLowerCase().includes(searchLower) ||
-      res.roomType?.toLowerCase().includes(searchLower)
+      res.id?.toString().toLowerCase()?.includes(searchLower) ||
+      res?.roomName?.toLowerCase()?.includes(searchLower) ||
+      res?.specialRequests?.toLowerCase()?.includes(searchLower)
     );
   });
 
@@ -82,15 +82,17 @@ export default function ReservationsPage() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: ReservationStatus) => {
     switch (status) {
+      case "pending":
+        return <Badge className="bg-blue-500">Pending Confirmation</Badge>;
+      case "confirmed":
+        return <Badge className="bg-yellow-500">Confirmed</Badge>;
       case "checked-in":
         return <Badge className="bg-green-500">Checked In</Badge>;
       case "checked-out":
         return <Badge variant="outline">Checked Out</Badge>;
-      case "reserved":
-        return <Badge className="bg-blue-500">Reserved</Badge>;
-      case "cancelled":
+      case "canceled":
         return <Badge variant="destructive">Cancelled</Badge>;
       case "no-show":
         return <Badge variant="destructive">No Show</Badge>;
@@ -99,20 +101,19 @@ export default function ReservationsPage() {
     }
   };
 
-  const getPaymentStatusBadge = (status: string) => {
+  const getPaymentStatusBadge = (status: PaymentStatus) => {
     switch (status) {
       case "paid":
         return <Badge className="bg-green-500">Paid</Badge>;
-      case "pending":
+      case "unpaid":
         return (
           <Badge variant="outline" className="border-amber-500 text-amber-500">
-            Pending
+            Payment Pending
           </Badge>
         );
-      case "partial":
-        return <Badge className="bg-blue-500">Partial</Badge>;
-      case "refunded":
-        return <Badge variant="secondary">Refunded</Badge>;
+      case "partially_paid":
+        return <Badge className="bg-blue-500">Partially Paid</Badge>;
+
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -155,15 +156,15 @@ export default function ReservationsPage() {
         </div>
 
         {/* Reservations List */}
-        {filteredReservations.length > 0 ? (
+        {(filteredReservations?.length ?? 0) > 0 ? (
           <div className="grid gap-4">
-            {filteredReservations.map((reservation) => (
+            {filteredReservations?.map((reservation) => (
               <Card key={reservation.id}>
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start">
                     <div>
                       <CardTitle className="text-lg">
-                        {reservation.roomType}
+                        {reservation?.roomName}
                       </CardTitle>
                       <CardDescription>
                         Reservation #{reservation.id}
@@ -194,7 +195,7 @@ export default function ReservationsPage() {
                       </div>
                       <div className="flex items-center text-sm">
                         <Hotel className="mr-2 h-4 w-4 text-muted-foreground" />
-                        <span>Room {reservation.roomNumber}</span>
+                        <span>Room {reservation.id}</span>
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -226,7 +227,8 @@ export default function ReservationsPage() {
                         View
                       </Button>
                     </Link>
-                    {reservation.status === "reserved" && (
+                    {(reservation.status === "pending" ||
+                      reservation.status === "confirmed") && (
                       <>
                         <Link href={`/reservations/${reservation.id}/edit`}>
                           <Button variant="outline" size="sm">
