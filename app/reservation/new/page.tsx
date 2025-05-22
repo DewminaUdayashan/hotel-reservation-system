@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { format } from "date-fns";
+import { format, set } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -39,8 +39,9 @@ import { useRoomFilterStore } from "@/lib/stores/useRoomFilterStore";
 import { useReserveRoom } from "@/hooks/reservations/reservations";
 import { DateRangePicker } from "@/components/shared/date-range-picker";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "@/hooks/use-toast";
+import { AuthDialog } from "@/components/auth-dialog";
 
 const formSchema = z
   .object({
@@ -80,7 +81,8 @@ const formSchema = z
 export default function NewReservationForm() {
   const { user } = useAuth();
 
-  const router = useRouter();
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
+
   const searchParams = useSearchParams();
   const roomId = Number(searchParams?.get("roomId"));
 
@@ -169,6 +171,10 @@ export default function NewReservationForm() {
         phone: user.phone ?? "",
       });
     }
+  }, [user]);
+
+  useEffect(() => {
+    setShowAuthDialog(!user);
   }, [user]);
 
   if (!room || !roomType || !roomId) {
@@ -353,6 +359,11 @@ export default function NewReservationForm() {
           </Form>
         </CardContent>
       </Card>
+      <AuthDialog
+        open={showAuthDialog}
+        onOpenChange={(open) => setShowAuthDialog(open)}
+        onSuccess={() => setShowAuthDialog(false)}
+      />
     </div>
   );
 }
