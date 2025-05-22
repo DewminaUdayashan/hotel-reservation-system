@@ -5,4 +5,5 @@ export default {
   amenities: "amenities",
   images: "images",
   reservations: "reservations",
+  userReservations: "userReservations",
 };
