@@ -132,6 +132,11 @@ export default function NewReservationForm() {
     !nights || !roomType ? undefined : roomType?.price * nights;
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
+    if (!user) {
+      setShowAuthDialog(true);
+      return;
+    }
+
     if (!isAvailable) return;
 
     reserveMutation.mutate(
