@@ -61,7 +61,7 @@ export const ReservationCard = ({ reservation }: Props) => {
         router.push("/reservations");
         toast({
           title: "Reservation Cancelled",
-          description: `${user?.createdAt} ${user?.lastName}'s reservation has been cancelled.`,
+          description: `${user?.firstName ?? "The user"} ${user?.lastName}'s reservation has been cancelled.`,
         });
       },
       onError: (error) => {
