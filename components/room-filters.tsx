@@ -125,8 +125,8 @@ export function RoomFilters({
       capacity: undefined,
       checkIn: undefined,
       checkOut: undefined,
-      minPrice: 100,
-      maxPrice: 400,
+      minPrice: undefined,
+      maxPrice: undefined,
     });
   };
 

@@ -24,3 +24,11 @@ export const isDateRangeOverlapping = (
   // Checks if two ranges overlap
   return start1.isBefore(end2) && end1.isAfter(start2);
 };
+
+export const isWithin24Hours = (date: Date): boolean => {
+  const now = moment();
+  const targetDate = moment(date);
+  const diffInHours = targetDate.diff(now, "hours");
+
+  return diffInHours <= 24;
+};

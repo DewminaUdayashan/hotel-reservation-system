@@ -15,7 +15,7 @@ export const ReservationStatusBadge = ({ status }: Props) => {
       return <Badge className="bg-green-500">Checked In</Badge>;
     case "checked-out":
       return <Badge variant="outline">Checked Out</Badge>;
-    case "canceled":
+    case "cancelled":
       return <Badge variant="destructive">Cancelled</Badge>;
     case "no-show":
       return <Badge variant="destructive">No Show</Badge>;

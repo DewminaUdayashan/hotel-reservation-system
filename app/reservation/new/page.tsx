@@ -79,6 +79,7 @@ const formSchema = z
   });
 
 export default function NewReservationForm() {
+  const router = useRouter();
   const { user } = useAuth();
 
   const [showAuthDialog, setShowAuthDialog] = useState(false);
@@ -153,7 +154,7 @@ export default function NewReservationForm() {
             title: "Reservation successful",
             description: `ID: ${reservationId}`,
           });
-          // router.push(`/reservations/${reservationId}`);
+          router.push(`/reservations/${reservationId}`);
         },
         onError: (err: any) => {
           toast({

@@ -48,6 +48,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
+  useDeleteReservation,
   useReservationById,
   useUpdateReservation,
 } from "@/hooks/reservations/reservations";
@@ -63,6 +64,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useRoomAvailability } from "@/hooks/rooms/rooms";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { isWithin24Hours } from "@/lib/utils/moment";
 
 // Form validation schema
 const formSchema = z.object({
@@ -206,10 +208,7 @@ export default function EditReservationPage() {
         to: checkOutDate,
       });
 
-      // Check if check-in date is within 24 hours
-      const now = new Date();
-      const twentyFourHoursFromNow = addHours(now, 24);
-      setIsCheckInWithin24Hours(isBefore(checkInDate, twentyFourHoursFromNow));
+      setIsCheckInWithin24Hours(isWithin24Hours(checkInDate));
     }
   }, [reservation]);
 

@@ -3,7 +3,7 @@ export type ReservationStatus =
   | "confirmed"
   | "checked-in"
   | "checked-out"
-  | "canceled"
+  | "cancelled"
   | "no-show";
 export type PaymentStatus = "paid" | "unpaid" | "partially_paid";
 export type PaymentMethod =

@@ -103,16 +103,13 @@ const useRoomAvailability = (
     queryKey: [queryKeys.availableRooms, roomId, checkIn, checkOut, userId],
     enabled: !!roomId && !!checkIn && !!checkOut,
     queryFn: async () => {
-      const res = await axios.get(
-        "/reservations/" + roomId + "/check-availability",
-        {
-          params: {
-            checkIn,
-            checkOut,
-            userId,
-          },
-        }
-      );
+      const res = await axios.get("/rooms/" + roomId + "/check-availability", {
+        params: {
+          checkIn,
+          checkOut,
+          userId,
+        },
+      });
       return res.data.isAvailable as boolean;
     },
   });

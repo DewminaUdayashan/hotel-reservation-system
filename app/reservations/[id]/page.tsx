@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
 import {
@@ -30,29 +30,39 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/components/ui/use-toast";
-import { Toaster } from "@/components/ui/toaster";
-import { useReservationById } from "@/hooks/reservations/reservations";
+import {
+  useCancelReservation,
+  useReservationById,
+} from "@/hooks/reservations/reservations";
 import { ReservationStatusBadge } from "@/components/reservations/reservation-status-badge";
 import { ReservationPaymentStatusBadge } from "@/components/reservations/reservation-payment-status-badge";
 import { AdminOnly } from "@/components/admin-only";
+import { isWithin24Hours } from "@/lib/utils/moment";
+import { toast } from "@/hooks/use-toast";
 
 export default function ReservationDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const reservationId = Number.parseInt(params?.id as string, 10);
 
-  const [checkOutDate, setCheckOutDate] = useState<Date | undefined>(undefined);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
-  const [isChangingDates, setIsChangingDates] = useState(false);
+  const [within24Hours, setWithin24Hours] = useState(false);
+  const [showCancel, setShowCancel] = useState(false);
 
   // Mock data fetching with TanStack Query
   const { data: reservation, isLoading } = useReservationById(reservationId);
+
+  const cancelReservationMutation = useCancelReservation();
+
+  useEffect(() => {
+    if (reservation) {
+      setWithin24Hours(isWithin24Hours(reservation.checkIn));
+    }
+  }, [reservation]);
 
   if (isLoading || !reservation) {
     return (
@@ -91,25 +101,28 @@ export default function ReservationDetailsPage() {
     setIsCheckingOut(false);
   };
 
-  const handleChangeCheckoutDate = () => {
-    if (!checkOutDate) {
-      toast({
-        title: "Error",
-        description: "Please select a new check-out date.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // This would be an API call in a real application
-    toast({
-      title: "Check-out date updated",
-      description: `The check-out date has been updated to ${format(
-        checkOutDate,
-        "MMMM dd, yyyy"
-      )}.`,
+  const handleCancel = () => {
+    cancelReservationMutation.mutate(reservationId, {
+      onSuccess: () => {
+        router.push("/reservations");
+        toast({
+          title: "Reservation Cancelled",
+          description: `${customerName}'s reservation has been cancelled.`,
+        });
+      },
+      onError: (error) => {
+        toast({
+          title: "Cancellation Failed",
+          description:
+            error.message ??
+            "An error occurred while cancelling the reservation.",
+          variant: "destructive",
+        });
+      },
+      onSettled: () => {
+        setShowCancel(false);
+      },
     });
-    setIsChangingDates(false);
   };
 
   const totalAdditionalCharges = 100;
@@ -281,47 +294,6 @@ export default function ReservationDetailsPage() {
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span>{format(reservation.checkOut, "MMMM dd, yyyy")}</span>
-                  {/* <Dialog
-                    open={isChangingDates}
-                    onOpenChange={setIsChangingDates}
-                  >
-                    <DialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Edit className="h-4 w-4" />
-                        <span className="sr-only">Change date</span>
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Change Check-out Date</DialogTitle>
-                        <DialogDescription>
-                          Select a new check-out date for this reservation.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="py-4">
-                        <CalendarComponent
-                          mode="single"
-                          selected={checkOutDate}
-                          onSelect={setCheckOutDate}
-                          initialFocus
-                          disabled={(date) =>
-                            date < new Date(reservation.checkIn)
-                          }
-                        />
-                      </div>
-                      <DialogFooter>
-                        <Button
-                          variant="outline"
-                          onClick={() => setIsChangingDates(false)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button onClick={handleChangeCheckoutDate}>
-                          Save Changes
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog> */}
                 </div>
               </div>
             </div>
@@ -512,7 +484,23 @@ export default function ReservationDetailsPage() {
                   <Edit className="mr-2 h-4 w-4" />
                   Edit
                 </Button>
-                <Button variant="destructive" size="sm" className="w-full">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => {
+                    if (within24Hours) {
+                      toast({
+                        title: "Cancellation Failed",
+                        description:
+                          "You cannot cancel a reservation within 24 hours of check-in.",
+                        variant: "destructive",
+                      });
+                    } else {
+                      setShowCancel(true);
+                    }
+                  }}
+                >
                   <Trash className="mr-2 h-4 w-4" />
                   Cancel Reservation
                 </Button>
@@ -521,7 +509,35 @@ export default function ReservationDetailsPage() {
           </CardContent>
         </Card>
       </div>
-      <Toaster />
+      <Dialog open={showCancel} onOpenChange={setShowCancel}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel Reservation</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel this reservation? This action is
+              irreversible.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setShowCancel(false)}
+              className="mr-2"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleCancel}
+              disabled={cancelReservationMutation.isPending}
+            >
+              {cancelReservationMutation.isPending
+                ? "Confirm Cancellation"
+                : "Cancelling..."}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

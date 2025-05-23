@@ -70,3 +70,18 @@ export const useUpdateReservation = (id: number) => {
     },
   });
 };
+
+export const useCancelReservation = () => {
+  const axios = useAxios();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (reservationId: number) => {
+      const res = await axios.post(`/reservations/${reservationId}/cancel`);
+      return res.data;
+    },
+    onSuccess() {
+      queryClient.invalidateQueries({ queryKey: [queryKeys.userReservations] });
+    },
+  });
+};

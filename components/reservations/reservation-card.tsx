@@ -13,12 +13,72 @@ import { Button } from "../ui/button";
 import { format } from "date-fns";
 import { ReservationStatusBadge } from "./reservation-status-badge";
 import { ReservationPaymentStatusBadge } from "./reservation-payment-status-badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
+import { useEffect, useState } from "react";
+import { useCancelReservation } from "@/hooks/reservations/reservations";
+import { useRouter } from "next/navigation";
+import { toast } from "@/hooks/use-toast";
+import { useUserById } from "@/hooks/users/users";
+import { isWithin24Hours } from "@/lib/utils/moment";
 
 type Props = {
   reservation: ReservationWithAdditionalDetails;
 };
 
 export const ReservationCard = ({ reservation }: Props) => {
+  const router = useRouter();
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [within24Hours, setWithin24Hours] = useState(false);
+  const cancelReservationMutation = useCancelReservation();
+
+  const { data: user } = useUserById(reservation?.customerId);
+
+  useEffect(() => {
+    if (reservation) {
+      setWithin24Hours(isWithin24Hours(reservation.checkIn));
+    }
+  }, [reservation]);
+
+  const handleCancel = () => {
+    if (within24Hours) {
+      toast({
+        title: "Cancellation Failed",
+        description:
+          "You cannot cancel a reservation within 24 hours of check-in.",
+        variant: "destructive",
+      });
+      return;
+    }
+    cancelReservationMutation.mutate(reservation.id, {
+      onSuccess: () => {
+        router.push("/reservations");
+        toast({
+          title: "Reservation Cancelled",
+          description: `${user?.createdAt} ${user?.lastName}'s reservation has been cancelled.`,
+        });
+      },
+      onError: (error) => {
+        toast({
+          title: "Cancellation Failed",
+          description:
+            error.message ??
+            "An error occurred while cancelling the reservation.",
+          variant: "destructive",
+        });
+      },
+      onSettled: () => {
+        setShowCancelDialog(false);
+      },
+    });
+  };
+
   return (
     <Card key={reservation.id}>
       <CardHeader className="pb-2">
@@ -29,7 +89,11 @@ export const ReservationCard = ({ reservation }: Props) => {
           </div>
           <div className="flex flex-col items-end gap-1">
             <ReservationStatusBadge status={reservation.status} />
-            <ReservationPaymentStatusBadge status={reservation.paymentStatus} />
+            {reservation.status !== "cancelled" && (
+              <ReservationPaymentStatusBadge
+                status={reservation.paymentStatus}
+              />
+            )}
           </div>
         </div>
       </CardHeader>
@@ -86,7 +150,12 @@ export const ReservationCard = ({ reservation }: Props) => {
                   Edit
                 </Button>
               </Link>
-              <Button variant="outline" size="sm" onClick={() => {}}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCancelDialog(true)}
+                disabled={cancelReservationMutation.isPending || within24Hours}
+              >
                 <Trash className="mr-2 h-4 w-4" />
                 Cancel
               </Button>
@@ -94,6 +163,35 @@ export const ReservationCard = ({ reservation }: Props) => {
           )}
         </div>
       </CardFooter>
+      {/* Cancel Reservation Dialog */}
+      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel Reservation</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel this reservation? This action
+              cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowCancelDialog(false)}
+            >
+              Keep Reservation
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleCancel}
+              disabled={cancelReservationMutation.isPending}
+            >
+              {cancelReservationMutation.isPending
+                ? "Cancelling..."
+                : "Cancel Reservation"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

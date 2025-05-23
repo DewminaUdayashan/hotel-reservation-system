@@ -20,21 +20,19 @@ import { AuthDialog } from "@/components/auth-dialog";
 import { toast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { useAuth } from "@/hooks/auth/useAuth";
-import { useUserReservations } from "@/hooks/reservations/reservations";
+import {
+  useCancelReservation,
+  useUserReservations,
+} from "@/hooks/reservations/reservations";
 import { ReservationCard } from "@/components/reservations/reservation-card";
 
 export default function ReservationsPage() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [showAuthDialog, setShowAuthDialog] = useState(false);
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [selectedReservation, setSelectedReservation] = useState<number | null>(
-    null
-  );
 
   const { user } = useAuth();
   const { data: reservations } = useUserReservations();
-  const cancelReservation = () => {};
 
   // Check if user is logged in
   useEffect(() => {
@@ -53,17 +51,6 @@ export default function ReservationsPage() {
       res?.specialRequests?.toLowerCase()?.includes(searchLower)
     );
   });
-
-  const handleCancelReservation = () => {
-    if (selectedReservation) {
-      // cancelReservation(selectedReservation);
-      toast({
-        title: "Reservation cancelled",
-        description: "Your reservation has been successfully cancelled.",
-      });
-      setShowCancelDialog(false);
-    }
-  };
 
   return (
     <div className="container mx-auto py-10 px-4">
@@ -128,38 +115,12 @@ export default function ReservationsPage() {
         )}
       </div>
 
-      {/* Cancel Reservation Dialog */}
-      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Cancel Reservation</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to cancel this reservation? This action
-              cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowCancelDialog(false)}
-            >
-              Keep Reservation
-            </Button>
-            <Button variant="destructive" onClick={handleCancelReservation}>
-              Cancel Reservation
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Auth Dialog */}
       <AuthDialog
         open={showAuthDialog}
         onOpenChange={(open) => setShowAuthDialog(open)}
         onSuccess={() => setShowAuthDialog(false)}
       />
-
-      <Toaster />
     </div>
   );
 }
