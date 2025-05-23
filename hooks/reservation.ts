@@ -1,29 +1,34 @@
 import { useQuery } from "@tanstack/react-query";
 import queryKeys from "./query-keys";
-import { delay } from "@/lib/api";
-import { reservations } from "@/lib/data";
+import { useAuth } from "@/hooks/auth/useAuth"; // Import useAuth
+import axiosInstance from "@/lib/axios"; // Import axiosInstance
+import { Reservation } from "@/lib/types/reservation"; // Import Reservation type
 
 const useReservations = () => {
-  return useQuery({
-    queryKey: [queryKeys.reservations],
+  const { user, isAdmin } = useAuth();
+
+  return useQuery<Reservation[], Error>({ // Specify types for data and error
+    queryKey: [queryKeys.reservations, isAdmin ? "admin" : user?.id],
     queryFn: async () => {
-      // Simulate async fetch
-      // await delay(300);
-      return reservations;
+      const url = isAdmin ? "/admin/reservations" : "/reservations";
+      const response = await axiosInstance.get(url);
+      return response.data;
     },
+    enabled: !!user, // Only run query if user is logged in
   });
 };
 
-const useReservation = (id: number) => {
-  return useQuery({
+const useReservation = (id?: number | string) => { // id can be string from URL params
+  const { user } = useAuth();
+
+  return useQuery<Reservation, Error>({ // Specify types for data and error
     queryKey: [queryKeys.reservations, id],
     queryFn: async () => {
-      await delay(200);
-      const reservation = reservations.find((r) => r.id === id);
-      if (!reservation) throw new Error("Reservation not found");
-      return reservation;
+      if (!id) throw new Error("Reservation ID is required"); // Or handle appropriately
+      const response = await axiosInstance.get(`/reservations/${id}`);
+      return response.data;
     },
-    enabled: !!id,
+    enabled: !!user && !!id, // Only run query if user is logged in and id is provided
   });
 };
 

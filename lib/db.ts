@@ -1,58 +1,16 @@
-const sql = require("mssql");
+import { PrismaClient } from '@prisma/client';
 
-const config = {
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  server: process.env.DB_SERVER, // e.g., your-db-server.database.windows.net
-  database: process.env.DB_NAME,
-  options: {
-    encrypt: true, // Required for Azure
-  },
-};
+let prisma: PrismaClient;
 
-export async function getConnection() {
-  try {
-    const pool = await sql.connect(config);
-    return pool;
-  } catch (err) {
-    console.error("Database connection error: ", err);
-    throw err;
+if (process.env.NODE_ENV === 'production') {
+  prisma = new PrismaClient();
+} else {
+  // Ensure the prisma instance is re-used during hot-reloading
+  // Prevents too many connections during development
+  if (!global.prisma) {
+    global.prisma = new PrismaClient();
   }
-}
-export async function closeConnection() {
-  try {
-    await sql.close();
-  } catch (err) {
-    console.error("Error closing database connection: ", err);
-  }
+  prisma = global.prisma;
 }
 
-/**
- * Executes a query with optional parameters.
- * @param query SQL string (can include named parameters like @id)
- * @param params Optional array of { name, value } objects
- */
-export async function executeQuery(
-  query: string,
-  params?: { name: string; value: any }[]
-) {
-  try {
-    const pool = await getConnection();
-    const request = pool.request();
-
-    // Add parameters if provided
-    if (params && Array.isArray(params)) {
-      params.forEach((param) => {
-        request.input(param.name, param.value);
-      });
-    }
-
-    const result = await request.query(query);
-    return result.recordset;
-  } catch (err) {
-    console.error("Error executing query: ", err);
-    throw err;
-  } finally {
-    await closeConnection();
-  }
-}
+export default prisma;
