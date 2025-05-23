@@ -1,7 +1,6 @@
 "use client";
 
 import type React from "react";
-
 import { useState } from "react";
 import {
   Dialog,
@@ -15,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLogin } from "@/hooks/auth/useLogin";
+import { useRegister } from "@/hooks/auth/useRegister";
 
 type AuthDialogProps = {
   open: boolean;
@@ -22,22 +23,44 @@ type AuthDialogProps = {
   onSuccess?: () => void;
 };
 
-export function AuthDialog({ open, onOpenChange, onSuccess }: AuthDialogProps) {
+export function AuthDialog({
+  open,
+  onOpenChange,
+  onSuccess: onSuccessCallback,
+}: AuthDialogProps) {
   const [activeTab, setActiveTab] = useState<string>("login");
-  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
+    phone: "",
+    homeTown: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const login = () => {};
+  const loginMutation = useLogin();
+  const registerMutation = useRegister();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    // Clear error when user types
+
+    if (name === "phone") {
+      // Allow only numbers and one optional + at the beginning
+      let cleaned = value.replace(/[^\d+]/g, "");
+
+      // Only allow leading +
+      if (cleaned.includes("+")) {
+        cleaned = "+" + cleaned.replace(/\+/g, "").replace(/\D/g, "");
+      } else {
+        cleaned = cleaned.replace(/\D/g, "");
+      }
+
+      setFormData((prev) => ({ ...prev, [name]: cleaned }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
+
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
@@ -46,8 +69,27 @@ export function AuthDialog({ open, onOpenChange, onSuccess }: AuthDialogProps) {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (activeTab === "register" && !formData.name.trim()) {
-      newErrors.name = "Name is required";
+    if (activeTab === "register") {
+      if (!formData.firstName.trim()) {
+        newErrors.firstName = "First name is required";
+      }
+
+      if (!formData.lastName.trim()) {
+        newErrors.lastName = "Last name is required";
+      }
+
+      if (!formData.phone.trim()) {
+        newErrors.phone = "Phone is required";
+      } else if (!/^\+?\d{10,15}$/.test(formData.phone)) {
+        newErrors.phone =
+          "Phone number must be 10 to 15 digits (with optional +)";
+      } else {
+        // Count digits only (exclude +) to ensure valid length
+        const digitCount = formData.phone.replace(/\D/g, "").length;
+        if (digitCount < 10 || digitCount > 15) {
+          newErrors.phone = "Phone number must be 10 to 15 digits long";
+        }
+      }
     }
 
     if (!formData.email.trim()) {
@@ -68,28 +110,39 @@ export function AuthDialog({ open, onOpenChange, onSuccess }: AuthDialogProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!validateForm()) return;
 
-    setIsLoading(true);
-
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Mock successful login/registration
-      login({
-        id: `user_${Math.random().toString(36).substr(2, 9)}`,
-        name: formData.name || formData.email.split("@")[0],
-        email: formData.email,
-      });
-
-      onOpenChange(false);
-      if (onSuccess) onSuccess();
-    } catch (error) {
-      console.error("Authentication error:", error);
-    } finally {
-      setIsLoading(false);
+    if (activeTab === "login") {
+      await loginMutation.mutate(
+        {
+          email: formData.email,
+          password: formData.password,
+        },
+        {
+          onSuccess: (data) => {
+            onOpenChange(false);
+            if (onSuccessCallback) onSuccessCallback();
+          },
+        }
+      );
+    } else {
+      await registerMutation.mutate(
+        {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          password: formData.password,
+          phone: formData.phone,
+          homeTown: formData.homeTown,
+          role: "customer",
+        },
+        {
+          onSuccess: (data) => {
+            onOpenChange(false);
+            if (onSuccessCallback) onSuccessCallback();
+          },
+        }
+      );
     }
   };
 
@@ -107,6 +160,7 @@ export function AuthDialog({ open, onOpenChange, onSuccess }: AuthDialogProps) {
           </TabsList>
 
           <form onSubmit={handleSubmit}>
+            {/* Login Tab */}
             <TabsContent value="login" className="space-y-4 py-4">
               <DialogHeader>
                 <DialogTitle>Login to your account</DialogTitle>
@@ -147,12 +201,17 @@ export function AuthDialog({ open, onOpenChange, onSuccess }: AuthDialogProps) {
               </div>
 
               <DialogFooter>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Logging in..." : "Login"}
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={loginMutation.isPending}
+                >
+                  {loginMutation.isPending ? "Logging in..." : "Login"}
                 </Button>
               </DialogFooter>
             </TabsContent>
 
+            {/* Register Tab */}
             <TabsContent value="register" className="space-y-4 py-4">
               <DialogHeader>
                 <DialogTitle>Create an account</DialogTitle>
@@ -163,16 +222,30 @@ export function AuthDialog({ open, onOpenChange, onSuccess }: AuthDialogProps) {
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Name</Label>
+                  <Label htmlFor="firstName">First Name</Label>
                   <Input
-                    id="name"
-                    name="name"
-                    placeholder="John Doe"
-                    value={formData.name}
+                    id="firstName"
+                    name="firstName"
+                    placeholder="John"
+                    value={formData.firstName}
                     onChange={handleChange}
                   />
-                  {errors.name && (
-                    <p className="text-sm text-red-500">{errors.name}</p>
+                  {errors.firstName && (
+                    <p className="text-sm text-red-500">{errors.firstName}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    name="lastName"
+                    placeholder="Doe"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                  />
+                  {errors.lastName && (
+                    <p className="text-sm text-red-500">{errors.lastName}</p>
                   )}
                 </div>
 
@@ -204,11 +277,43 @@ export function AuthDialog({ open, onOpenChange, onSuccess }: AuthDialogProps) {
                     <p className="text-sm text-red-500">{errors.password}</p>
                   )}
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    placeholder="+1234567890"
+                    value={formData.phone}
+                    onChange={handleChange}
+                  />
+                  {errors.phone && (
+                    <p className="text-sm text-red-500">{errors.phone}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="homeTown">Hometown (optional)</Label>
+                  <Input
+                    id="homeTown"
+                    name="homeTown"
+                    placeholder="City, State"
+                    value={formData.homeTown}
+                    onChange={handleChange}
+                  />
+                </div>
               </div>
 
               <DialogFooter>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Creating account..." : "Register"}
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={registerMutation.isPending}
+                >
+                  {registerMutation.isPending
+                    ? "Creating account..."
+                    : "Register"}
                 </Button>
               </DialogFooter>
             </TabsContent>

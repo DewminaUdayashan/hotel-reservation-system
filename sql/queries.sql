@@ -81,6 +81,7 @@ CREATE TABLE Reservations (
     numberOfGuests INT NOT NULL,
     checkInDate DATE NOT NULL,
     checkOutDate DATE NOT NULL,
+    specialRequests NVARCHAR(500) NULL,
     createdAt DATETIME DEFAULT GETDATE(),
     status NVARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (status IN (
         'pending', 'confirmed', 'cancelled', 'checked-in', 'checked-out', 'no-show'

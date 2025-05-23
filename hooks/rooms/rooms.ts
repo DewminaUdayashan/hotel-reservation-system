@@ -94,19 +94,24 @@ const useRoomById = (roomId?: number) => {
 const useRoomAvailability = (
   roomId?: number,
   checkIn?: string,
-  checkOut?: string
+  checkOut?: string,
+  userId?: number
 ) => {
   const axios = useAxios();
 
   return useQuery({
-    queryKey: [queryKeys.rooms, roomId, checkIn, checkOut],
+    queryKey: [queryKeys.availableRooms, roomId, checkIn, checkOut, userId],
+    enabled: !!roomId && !!checkIn && !!checkOut,
     queryFn: async () => {
-      const res = await axios.get(`/rooms/${roomId}/check-availability`, {
-        params: { checkIn, checkOut },
+      const res = await axios.get("/rooms/" + roomId + "/check-availability", {
+        params: {
+          checkIn,
+          checkOut,
+          userId,
+        },
       });
       return res.data.isAvailable as boolean;
     },
-    enabled: !!roomId,
   });
 };
 

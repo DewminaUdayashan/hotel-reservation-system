@@ -3,6 +3,8 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
 import { useRouter } from "next/navigation";
+import { User } from "@/lib/types/user";
+import { toast } from "@/hooks/use-toast";
 
 interface AuthContextType {
   user: User | null;
@@ -24,6 +26,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.setItem("authUser", JSON.stringify(user));
     setToken(token);
     setUser(user);
+    toast({
+      title: "Logged in",
+      description: "You have been logged in successfully.",
+      variant: "default",
+    });
   };
 
   const logout = () => {
@@ -31,7 +38,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.removeItem("authUser");
     setToken(null);
     setUser(null);
-    router.push("/login");
+    router.push("/");
+    toast({
+      title: "Logged out",
+      description: "You have been logged out successfully.",
+      variant: "default",
+    });
   };
 
   // Auto load on refresh

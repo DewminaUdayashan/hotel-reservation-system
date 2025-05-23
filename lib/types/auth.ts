@@ -1,9 +1,17 @@
+import { User, UserRole } from "./user";
+
 export type LoginPayload = {
   email: string;
   password: string;
 };
 
-export type UserRole = "customer" | "clerk" | "manager" | "admin";
+export type RegisterPayload = LoginPayload & {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  homeTown?: string;
+  role: UserRole;
+};
 
 export type LoginResponse = {
   message: string;
