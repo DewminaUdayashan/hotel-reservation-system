@@ -48,7 +48,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
-  useDeleteReservation,
   useReservationById,
   useUpdateReservation,
 } from "@/hooks/reservations/reservations";
@@ -189,8 +188,6 @@ export default function EditReservationPage() {
         },
       }
     );
-
-    router.push(`/reservations/${reservationId}`);
   };
 
   useEffect(() => {
