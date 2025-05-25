@@ -7,6 +7,8 @@ import { AuthDialog } from "../auth-dialog";
 import { useState } from "react";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { AdminOnly } from "../admin-only";
+import { UserOnly } from "../user-only";
 
 export function Header() {
   const [showAuthDialog, setShowAuthDialog] = useState(false);
@@ -45,16 +47,20 @@ export function Header() {
           </Link>
         </nav>
         <div className="flex items-center gap-4">
-          <Link href="/reservations">
-            <Button variant="outline" size="sm" className="hidden md:flex">
-              My Reservations
-            </Button>
-          </Link>
-          <Link href="/admin">
-            <Button variant="outline" size="sm" className="hidden md:flex">
-              Staff Portal
-            </Button>
-          </Link>
+          <UserOnly>
+            <Link href="/reservations">
+              <Button variant="outline" size="sm" className="hidden md:flex">
+                My Reservations
+              </Button>
+            </Link>
+          </UserOnly>
+          <AdminOnly>
+            <Link href="/admin">
+              <Button variant="outline" size="sm" className="hidden md:flex">
+                Staff Portal
+              </Button>
+            </Link>
+          </AdminOnly>
 
           {!user ? (
             <Button size="sm" onClick={() => setShowAuthDialog(true)}>

@@ -43,130 +43,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ProtectedRoute } from "@/components/protected-route";
+import { useAllRooms } from "@/hooks/rooms/rooms";
+import { useRoomFilterStore } from "@/lib/stores/useRoomFilterStore";
+import { ReservationStatusBadge } from "@/components/reservations/reservation-status-badge";
+import { ReservationPaymentStatusBadge } from "@/components/reservations/reservation-payment-status-badge";
+import { RoomStatusBadge } from "@/components/room/room-status-badge";
+import { useUserReservations } from "@/hooks/reservations/reservations";
 
 export default function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Mock data fetching with TanStack Query
-  const { data: reservations } = useQuery({
-    queryKey: ["reservations"],
-    queryFn: () => {
-      // This would be an API call in a real application
-      return [
-        {
-          id: "RES1001",
-          customerName: "John Smith",
-          roomType: "Deluxe Room",
-          checkIn: new Date("2023-06-15"),
-          checkOut: new Date("2023-06-18"),
-          status: "checked-in",
-          paymentStatus: "pending",
-          totalAmount: 540,
-        },
-        {
-          id: "RES1002",
-          customerName: "Emily Johnson",
-          roomType: "Standard Room",
-          checkIn: new Date("2023-06-16"),
-          checkOut: new Date("2023-06-20"),
-          status: "reserved",
-          paymentStatus: "paid",
-          totalAmount: 480,
-        },
-        {
-          id: "RES1003",
-          customerName: "Michael Brown",
-          roomType: "Executive Suite",
-          checkIn: new Date("2023-06-14"),
-          checkOut: new Date("2023-06-17"),
-          status: "checked-out",
-          paymentStatus: "paid",
-          totalAmount: 750,
-        },
-        {
-          id: "RES1004",
-          customerName: "Sarah Wilson",
-          roomType: "Residential Suite",
-          checkIn: new Date("2023-06-10"),
-          checkOut: new Date("2023-06-24"),
-          status: "checked-in",
-          paymentStatus: "partial",
-          totalAmount: 4900,
-        },
-        {
-          id: "RES1005",
-          customerName: "David Lee",
-          roomType: "Standard Room",
-          checkIn: new Date("2023-06-17"),
-          checkOut: new Date("2023-06-19"),
-          status: "reserved",
-          paymentStatus: "pending",
-          totalAmount: 240,
-        },
-      ];
-    },
-    initialData: [],
-  });
+  const filters = useRoomFilterStore((state) => state.filters);
 
-  const { data: rooms } = useQuery({
-    queryKey: ["rooms"],
-    queryFn: () => {
-      // This would be an API call in a real application
-      return [
-        {
-          id: 101,
-          type: "Standard Room",
-          status: "occupied",
-          currentGuest: "John Smith",
-        },
-        {
-          id: 102,
-          type: "Standard Room",
-          status: "available",
-          currentGuest: null,
-        },
-        {
-          id: 103,
-          type: "Deluxe Room",
-          status: "occupied",
-          currentGuest: "Emily Johnson",
-        },
-        {
-          id: 104,
-          type: "Deluxe Room",
-          status: "available",
-          currentGuest: null,
-        },
-        {
-          id: 105,
-          type: "Executive Suite",
-          status: "maintenance",
-          currentGuest: null,
-        },
-        {
-          id: 106,
-          type: "Executive Suite",
-          status: "available",
-          currentGuest: null,
-        },
-        {
-          id: 107,
-          type: "Residential Suite",
-          status: "occupied",
-          currentGuest: "Sarah Wilson",
-        },
-        {
-          id: 108,
-          type: "Residential Suite",
-          status: "available",
-          currentGuest: null,
-        },
-      ];
-    },
-    initialData: [],
+  const { data: reservations } = useUserReservations();
+
+  const { data: rooms } = useAllRooms({
+    capacity: filters.capacity,
+    type: filters.roomType?.id,
+    checkIn: filters.checkIn?.toISOString(),
+    checkOut: filters.checkOut?.toISOString(),
+    maxPrice: filters.maxPrice,
+    minPrice: filters.minPrice,
   });
 
   const { data: stats } = useQuery({
@@ -201,61 +100,6 @@ export default function AdminDashboard() {
       },
     },
   });
-
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "checked-in":
-        return <Badge className="bg-green-500">Checked In</Badge>;
-      case "checked-out":
-        return <Badge variant="outline">Checked Out</Badge>;
-      case "reserved":
-        return <Badge className="bg-blue-500">Reserved</Badge>;
-      case "cancelled":
-        return <Badge variant="destructive">Cancelled</Badge>;
-      case "no-show":
-        return <Badge variant="destructive">No Show</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
-
-  const getPaymentStatusBadge = (status) => {
-    switch (status) {
-      case "paid":
-        return <Badge className="bg-green-500">Paid</Badge>;
-      case "pending":
-        return (
-          <Badge variant="outline" className="border-amber-500 text-amber-500">
-            Pending
-          </Badge>
-        );
-      case "partial":
-        return <Badge className="bg-blue-500">Partial</Badge>;
-      case "refunded":
-        return <Badge variant="secondary">Refunded</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
-
-  const getRoomStatusBadge = (status) => {
-    switch (status) {
-      case "available":
-        return <Badge className="bg-green-500">Available</Badge>;
-      case "occupied":
-        return <Badge className="bg-blue-500">Occupied</Badge>;
-      case "reserved":
-        return (
-          <Badge variant="outline" className="border-amber-500 text-amber-500">
-            Reserved
-          </Badge>
-        );
-      case "maintenance":
-        return <Badge variant="destructive">Maintenance</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
 
   return (
     <ProtectedRoute requireAdmin>
@@ -584,12 +428,14 @@ export default function AdminDashboard() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {reservations.map((reservation) => (
+                          {reservations?.map((reservation) => (
                             <TableRow key={reservation.id}>
                               <TableCell className="font-medium">
                                 {reservation.id}
                               </TableCell>
-                              <TableCell>{reservation.customerName}</TableCell>
+                              <TableCell>
+                                {"reservation.customerName"}
+                              </TableCell>
                               <TableCell>{reservation.roomType}</TableCell>
                               <TableCell>
                                 {format(reservation.checkIn, "MMM dd, yyyy")}
@@ -598,12 +444,14 @@ export default function AdminDashboard() {
                                 {format(reservation.checkOut, "MMM dd, yyyy")}
                               </TableCell>
                               <TableCell>
-                                {getStatusBadge(reservation.status)}
+                                <ReservationStatusBadge
+                                  status={reservation.status}
+                                />
                               </TableCell>
                               <TableCell>
-                                {getPaymentStatusBadge(
-                                  reservation.paymentStatus
-                                )}
+                                <ReservationPaymentStatusBadge
+                                  status={reservation.paymentStatus}
+                                />
                               </TableCell>
                               <TableCell className="text-right">
                                 ${reservation.totalAmount}
@@ -665,16 +513,16 @@ export default function AdminDashboard() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {rooms.map((room) => (
+                          {rooms?.map((room) => (
                             <TableRow key={room.id}>
                               <TableCell className="font-medium">
                                 {room.id}
                               </TableCell>
                               <TableCell>{room.type}</TableCell>
                               <TableCell>
-                                {getRoomStatusBadge(room.status)}
+                                <RoomStatusBadge status={room.status} />
                               </TableCell>
-                              <TableCell>{room.currentGuest || "—"}</TableCell>
+                              <TableCell>{room.capacity || "—"}</TableCell>
                               <TableCell className="text-right">
                                 <Button variant="ghost" size="icon">
                                   <Settings className="h-4 w-4" />

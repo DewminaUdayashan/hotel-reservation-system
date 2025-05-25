@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/auth/useAuth";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 interface Props {
@@ -12,10 +12,9 @@ export const ProtectedRoute = ({ children, requireAdmin }: Props) => {
   const router = useRouter();
 
   useEffect(() => {
-    if (!user) {
-      router.push("/login");
-    } else if (requireAdmin && !isAdmin) {
-      router.push("/unauthorized");
+    if (!user && !isAdmin) return;
+    if (requireAdmin && !isAdmin) {
+      router.push("/");
     }
   }, [user]);
 

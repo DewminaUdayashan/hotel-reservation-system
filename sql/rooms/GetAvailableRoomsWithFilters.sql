@@ -4,7 +4,8 @@ CREATE OR ALTER PROCEDURE GetAvailableRoomsWithFilters
     @type INT = NULL,
     @capacity INT = NULL,
     @minPrice DECIMAL(10, 2) = NULL,
-    @maxPrice DECIMAL(10, 2) = NULL
+    @maxPrice DECIMAL(10, 2) = NULL,
+    @hotelId INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -15,6 +16,7 @@ BEGIN
         R.description,
         R.status,
         R.type,
+        R.hotelId,
         R.bedType,
         R.viewType,
         RT.name AS roomTypeName,
@@ -30,7 +32,8 @@ BEGIN
             WHEN 
                 @checkIn IS NULL AND @checkOut IS NULL AND
                 @type IS NULL AND @capacity IS NULL AND
-                @minPrice IS NULL AND @maxPrice IS NULL
+                @minPrice IS NULL AND @maxPrice IS NULL AND
+                @hotelId IS NULL
             THEN 
                 CASE 
                     WHEN EXISTS (
@@ -51,7 +54,8 @@ BEGIN
             -- No filters: include all room statuses
             @checkIn IS NULL AND @checkOut IS NULL AND
             @type IS NULL AND @capacity IS NULL AND
-            @minPrice IS NULL AND @maxPrice IS NULL
+            @minPrice IS NULL AND @maxPrice IS NULL AND
+            @hotelId IS NULL
         )
         OR
         (
@@ -76,6 +80,7 @@ BEGIN
         AND (@capacity IS NULL OR RT.capacity >= @capacity)
         AND (@minPrice IS NULL OR RT.price >= @minPrice)
         AND (@maxPrice IS NULL OR RT.price <= @maxPrice)
+        AND (@hotelId IS NULL OR R.hotelId = @hotelId)
 
     ORDER BY RT.price ASC;
 END;

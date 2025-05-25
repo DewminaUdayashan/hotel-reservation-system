@@ -10,7 +10,8 @@ export default async function handler(
   }
 
   try {
-    const { checkIn, checkOut, type, capacity, minPrice, maxPrice } = req.query;
+    const { checkIn, checkOut, type, capacity, minPrice, maxPrice, hotelId } =
+      req.query;
 
     const result = await executeQuery(
       `EXEC GetAvailableRoomsWithFilters 
@@ -19,7 +20,8 @@ export default async function handler(
         @type = @type, 
         @capacity = @capacity, 
         @minPrice = @minPrice, 
-        @maxPrice = @maxPrice`,
+        @maxPrice = @maxPrice,
+        @hotelId = @hotelId`,
       [
         { name: "checkIn", value: checkIn || null },
         { name: "checkOut", value: checkOut || null },
@@ -27,6 +29,7 @@ export default async function handler(
         { name: "capacity", value: capacity || null },
         { name: "minPrice", value: minPrice || null },
         { name: "maxPrice", value: maxPrice || null },
+        { name: "hotelId", value: hotelId || null },
       ]
     );
 

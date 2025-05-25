@@ -1,3 +1,25 @@
+CREATE TABLE Hotels (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    name NVARCHAR(255) NOT NULL,
+    location NVARCHAR(255) NULL,
+    description NVARCHAR(MAX) NULL,
+    createdAt DATETIME DEFAULT GETDATE()
+);
+
+ALTER TABLE Hotels
+ADD
+    mapUrl NVARCHAR(MAX) NULL,
+    logoUrl NVARCHAR(MAX) NULL;
+
+CREATE TABLE HotelImages (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    hotelId INT NOT NULL,
+    imageUrl NVARCHAR(MAX) NOT NULL,
+    caption NVARCHAR(255) NULL,
+    createdAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (hotelId) REFERENCES Hotels(id) ON DELETE CASCADE
+);
+
 CREATE TABLE Users (
     id INT IDENTITY(1,1) PRIMARY KEY,
     email NVARCHAR(255) NOT NULL UNIQUE,
@@ -13,6 +35,15 @@ CREATE TABLE Customers (
     phone NVARCHAR(50) NOT NULL,
     homeTown NVARCHAR(50) NULL,
     FOREIGN KEY (id) REFERENCES Users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE HotelUsers (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    userId INT NOT NULL,
+    hotelId INT NOT NULL,
+    role NVARCHAR(50) NOT NULL CHECK (role IN ('clerk', 'manager')),
+    FOREIGN KEY (userId) REFERENCES Users(id) ON DELETE CASCADE,
+    FOREIGN KEY (hotelId) REFERENCES Hotels(id) ON DELETE CASCADE
 );
 
 CREATE TABLE RoomTypes (
@@ -52,6 +83,14 @@ CREATE TABLE Rooms (
     viewType NVARCHAR(100) NULL,
     FOREIGN KEY (type) REFERENCES RoomTypes(id)
 );
+
+ALTER TABLE Rooms
+ADD hotelId INT;
+
+ALTER TABLE Rooms
+ADD CONSTRAINT FK_Rooms_Hotels FOREIGN KEY (hotelId)
+REFERENCES Hotels(id)
+ON DELETE CASCADE;
 
 CREATE TABLE Images (
     id INT IDENTITY(1,1) PRIMARY KEY,
@@ -228,3 +267,20 @@ INSERT INTO Rooms (id, name, description, status, type, bedType, viewType) VALUE
 (3, 'Executive Suite 301', 'Luxurious executive suite with living area and workspace.', 'available', 3, 'King + Sofa Bed', 'Sea'),
 (4, 'Residential Suite 401', 'Premium residential suite with kitchen and two bedrooms.', 'maintenance', 4, '2 Queens', 'Sea'),
 (6, 'Residential Suite 422', 'Premium residential suite with kitchen and two bedrooms.', 'available', 4, '2 Queens', 'Panoramic');
+
+INSERT INTO Hotels (name, location, description)
+VALUES (
+    'Luxe Galle Paradies',
+    'Galle, Sri Lanka',
+    'Nestled along the southern coastline, Luxe Galle Paradies offers breathtaking ocean views, serene tropical gardens, and world-class hospitality in a refined colonial setting.'
+);
+
+-- Assign rooms 1, 2, 3 to hotel 1 (Galle)
+UPDATE Rooms SET hotelId = 1 WHERE id = 1;
+UPDATE Rooms SET hotelId = 1 WHERE id = 2;
+UPDATE Rooms SET hotelId = 1 WHERE id = 3;
+
+-- Assign rooms 4, 5, 6 to hotel 2 (Hambanthota)
+UPDATE Rooms SET hotelId = 2 WHERE id = 4;
+UPDATE Rooms SET hotelId = 2 WHERE id = 5;
+UPDATE Rooms SET hotelId = 2 WHERE id = 6;

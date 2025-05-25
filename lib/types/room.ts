@@ -1,4 +1,4 @@
-export type RoomStatus = "available" | "maintenance";
+export type RoomStatus = "available" | "maintenance" | "occupied";
 
 export type RoomType = {
   id: number;

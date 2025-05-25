@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useRoomFilterStore } from "@/lib/stores/useRoomFilterStore";
+import { useAllHotels } from "@/hooks/hotels/hotels";
 
 type RoomFiltersProps = {
   onFilter?: () => void;
@@ -32,6 +33,7 @@ export function RoomFilters({
   compact = false,
 }: RoomFiltersProps) {
   const { data: roomTypes } = useRoomTypes();
+  const { data: hotels } = useAllHotels();
 
   const filters = useRoomFilterStore((state) => state.filters);
   const setFilters = useRoomFilterStore((state) => state.setFilters);
@@ -52,6 +54,7 @@ export function RoomFilters({
   );
 
   const [localFilters, setLocalFilters] = useState({
+    hotelId: filters.hotelId,
     roomType: filters.roomType,
     capacity: filters.capacity,
     checkIn: filters.checkIn,
@@ -65,6 +68,7 @@ export function RoomFilters({
   useEffect(() => {
     setActiveFilters(
       [
+        localFilters.hotelId,
         localFilters.checkIn && localFilters.checkOut,
         localFilters.roomType,
         localFilters.capacity,
@@ -111,6 +115,13 @@ export function RoomFilters({
     }));
   };
 
+  const handleHotelChange = (value: string) => {
+    setLocalFilters((prev) => ({
+      ...prev,
+      hotelId: value === "any" ? undefined : Number(value),
+    }));
+  };
+
   const handleApplyFilters = () => {
     setFilters({ ...localFilters });
     if (onFilter) onFilter();
@@ -121,6 +132,7 @@ export function RoomFilters({
     setDateRange({ from: undefined, to: undefined });
     setPriceRange(undefined);
     setLocalFilters({
+      hotelId: undefined,
       roomType: undefined,
       capacity: undefined,
       checkIn: undefined,
@@ -131,12 +143,34 @@ export function RoomFilters({
   };
 
   const isSearchEnabled =
+    !!localFilters.hotelId ||
     !!localFilters.checkIn ||
     !!localFilters.checkOut ||
     !!localFilters.roomType ||
     !!localFilters.capacity ||
     (localFilters.minPrice !== undefined &&
       localFilters.maxPrice !== undefined);
+
+  useEffect(() => {
+    if (!filters.checkIn && !filters.checkOut) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const dayAfterTomorrow = new Date();
+      dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+
+      setDateRange({
+        from: tomorrow,
+        to: dayAfterTomorrow,
+      });
+
+      setLocalFilters((prev) => ({
+        ...prev,
+        checkIn: tomorrow,
+        checkOut: dayAfterTomorrow,
+      }));
+    }
+  }, []);
 
   return (
     <div className={cn("bg-background rounded-lg border p-4", className)}>
@@ -146,6 +180,29 @@ export function RoomFilters({
           compact ? "md:flex-row md:items-end" : ""
         )}
       >
+        {/* Hotel Dropdown */}
+        {!compact && (
+          <div className={cn("flex-1", compact ? "md:max-w-[240px]" : "")}>
+            <div className="font-medium mb-2">Hotel</div>
+            <Select
+              value={localFilters.hotelId?.toString()}
+              onValueChange={handleHotelChange}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="All hotels" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="any">All hotels</SelectItem>
+                {hotels?.map((hotel) => (
+                  <SelectItem key={hotel.id} value={hotel.id.toString()}>
+                    {hotel.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         {/* Date Range */}
         <div className={cn("flex-1", compact ? "md:max-w-[240px]" : "")}>
           <div className="font-medium mb-2">Stay Dates</div>
@@ -243,6 +300,23 @@ export function RoomFilters({
       {activeFilters > 0 && (
         <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t">
           <span className="text-sm text-muted-foreground">Active filters:</span>
+
+          {localFilters.hotelId && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              {hotels?.find((h) => h.id === localFilters.hotelId)?.name}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-4 w-4 p-0 ml-1"
+                onClick={() =>
+                  setLocalFilters((prev) => ({ ...prev, hotelId: undefined }))
+                }
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          )}
+
           {localFilters.roomType && (
             <Badge variant="secondary" className="flex items-center gap-1">
               {roomTypes?.find((t) => t.id === localFilters.roomType!.id)?.name}
@@ -258,6 +332,7 @@ export function RoomFilters({
               </Button>
             </Badge>
           )}
+
           {localFilters.capacity && (
             <Badge variant="secondary" className="flex items-center gap-1">
               {localFilters.capacity}{" "}
@@ -274,6 +349,7 @@ export function RoomFilters({
               </Button>
             </Badge>
           )}
+
           {localFilters.checkIn && localFilters.checkOut && (
             <Badge variant="secondary" className="flex items-center gap-1">
               {format(localFilters.checkIn, "MMM d")} -{" "}
@@ -294,6 +370,7 @@ export function RoomFilters({
               </Button>
             </Badge>
           )}
+
           <Button
             variant="ghost"
             size="sm"
