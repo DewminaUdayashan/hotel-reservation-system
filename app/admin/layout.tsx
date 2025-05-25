@@ -43,7 +43,7 @@ export default function AdminLayout({
     <ProtectedRoute requireAdmin>
       <div className="flex min-h-screen flex-col">
         {/* Top Header */}
-        <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6">
+        <header className="md:hidden sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6">
           <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon" className="md:hidden">
@@ -81,31 +81,6 @@ export default function AdminLayout({
               </nav>
             </SheetContent>
           </Sheet>
-
-          <Link href="/admin" className="flex items-center gap-2 font-semibold">
-            <Hotel className="h-6 w-6" />
-            <span className="hidden md:inline">LuxeStay Admin</span>
-          </Link>
-
-          <div className="relative flex-1 md:grow-0 md:basis-1/3">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search..."
-              className="w-full bg-background pl-8 md:w-[300px]"
-            />
-          </div>
-
-          <nav className="ml-auto flex items-center gap-4">
-            <Button variant="outline" size="sm" className="hidden md:flex">
-              <Calendar className="mr-2 h-4 w-4" />
-              Today
-            </Button>
-            <Button variant="outline" size="icon" className="rounded-full">
-              <User className="h-4 w-4" />
-              <span className="sr-only">Toggle user menu</span>
-            </Button>
-          </nav>
         </header>
 
         {/* Main Content with Sidebar */}

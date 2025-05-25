@@ -51,6 +51,11 @@ export type ReservationDetails = ReservationWithAdditionalDetails & {
   card?: CardDetails;
 };
 
+export type AdminReservationResponse = {
+  data: ReservationWithAdditionalDetails[];
+  totalCount: number;
+};
+
 export type CardDetails = {
   cardHolderName: string;
   cardNumber: string;

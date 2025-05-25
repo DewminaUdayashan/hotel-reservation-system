@@ -1,64 +1,69 @@
 CREATE OR ALTER PROCEDURE GetAllReservationsForAdmin
     @page INT = 1,
     @pageSize INT = 10,
-    @search NVARCHAR(100) = NULL,
+    @search NVARCHAR(255) = NULL,
     @hotelId INT = NULL,
     @status NVARCHAR(50) = NULL,
     @fromDate DATE = NULL,
     @toDate DATE = NULL,
-    @orderBy NVARCHAR(50) = 'checkInDate',  -- e.g., 'checkInDate', 'createdAt'
-    @orderDir NVARCHAR(4) = 'ASC'           -- 'ASC' or 'DESC'
+    @orderBy NVARCHAR(50) = 'checkInDate',
+    @orderDir NVARCHAR(4) = 'ASC'
 AS
 BEGIN
     SET NOCOUNT ON;
 
     DECLARE @offset INT = (@page - 1) * @pageSize;
 
-    -- Base query
-    WITH FilteredReservations AS (
-        SELECT
-            Res.id,
-            Res.customerId,
-            Res.roomId,
-            Res.checkInDate,
-            Res.checkOutDate,
-            Res.numberOfGuests,
-            Res.status,
-            Res.createdAt,
-            Res.specialRequests,
-            C.phone,
-            U.email,
-            U.firstName,
-            U.lastName,
-            R.name AS roomName,
-            RT.name AS roomType,
-            H.id AS hotelId,
-            H.name AS hotelName,
-            COUNT(*) OVER() AS totalCount
-        FROM Reservations Res
-        INNER JOIN Customers C ON C.id = Res.customerId
-        INNER JOIN Users U ON U.id = C.id
-        INNER JOIN Rooms R ON R.id = Res.roomId
-        INNER JOIN RoomTypes RT ON RT.id = R.type
-        INNER JOIN Hotels H ON H.id = R.hotelId
-        WHERE
-            (@search IS NULL OR
-                CAST(Res.id AS NVARCHAR) LIKE '%' + @search + '%' OR
-                U.firstName LIKE '%' + @search + '%' OR
-                U.lastName LIKE '%' + @search + '%' OR
-                U.email LIKE '%' + @search + '%')
-            AND (@hotelId IS NULL OR H.id = @hotelId)
-            AND (@status IS NULL OR Res.status = @status)
-            AND (@fromDate IS NULL OR Res.checkInDate >= @fromDate)
-            AND (@toDate IS NULL OR Res.checkInDate <= @toDate)
-    )
-    SELECT *
-    FROM FilteredReservations
-    ORDER BY
-        CASE WHEN @orderBy = 'createdAt' AND @orderDir = 'ASC' THEN createdAt END ASC,
-        CASE WHEN @orderBy = 'createdAt' AND @orderDir = 'DESC' THEN createdAt END DESC,
-        CASE WHEN @orderBy = 'checkInDate' AND @orderDir = 'ASC' THEN checkInDate END ASC,
-        CASE WHEN @orderBy = 'checkInDate' AND @orderDir = 'DESC' THEN checkInDate END DESC
+    SELECT 
+        R.id,
+        R.customerId,
+        R.roomId,
+        R.checkInDate AS checkIn,
+        R.checkOutDate AS checkOut,
+        R.numberOfGuests AS guests,
+        R.status,
+        ISNULL(I.status, 'unpaid') AS paymentStatus,
+        I.paymentMethod,
+        I.totalAmount,
+        R.specialRequests,
+        R.createdAt,
+        Room.name AS roomName,
+        RT.name AS roomType,
+        (
+            SELECT COUNT(*) 
+            FROM Reservations R2
+            INNER JOIN Rooms Room2 ON R2.roomId = Room2.id
+            INNER JOIN RoomTypes RT2 ON Room2.type = RT2.id
+            INNER JOIN Customers C2 ON R2.customerId = C2.id
+            INNER JOIN Users U2 ON C2.id = U2.id
+            WHERE 
+                (@search IS NULL OR
+                 CAST(R2.id AS NVARCHAR) LIKE '%' + @search + '%' OR
+                 U2.firstName + ' ' + U2.lastName LIKE '%' + @search + '%' OR
+                 U2.email LIKE '%' + @search + '%')
+                AND (@hotelId IS NULL OR Room2.hotelId = @hotelId)
+                AND (@status IS NULL OR R2.status = @status)
+                AND (@fromDate IS NULL OR R2.checkInDate >= @fromDate)
+                AND (@toDate IS NULL OR R2.checkOutDate <= @toDate)
+        ) AS totalCount
+    FROM Reservations R
+    INNER JOIN Rooms Room ON R.roomId = Room.id
+    INNER JOIN RoomTypes RT ON Room.type = RT.id
+    INNER JOIN Customers C ON R.customerId = C.id
+    INNER JOIN Users U ON C.id = U.id
+    LEFT JOIN Invoices I ON I.reservationId = R.id
+    WHERE 
+        (@search IS NULL OR
+         CAST(R.id AS NVARCHAR) LIKE '%' + @search + '%' OR
+         U.firstName + ' ' + U.lastName LIKE '%' + @search + '%' OR
+         U.email LIKE '%' + @search + '%')
+        AND (@hotelId IS NULL OR Room.hotelId = @hotelId)
+        AND (@status IS NULL OR R.status = @status)
+        AND (@fromDate IS NULL OR R.checkInDate >= @fromDate)
+        AND (@toDate IS NULL OR R.checkOutDate <= @toDate)
+    ORDER BY 
+        CASE WHEN @orderBy = 'checkInDate' AND @orderDir = 'ASC' THEN R.checkInDate END ASC,
+        CASE WHEN @orderBy = 'checkInDate' AND @orderDir = 'DESC' THEN R.checkInDate END DESC
     OFFSET @offset ROWS
     FETCH NEXT @pageSize ROWS ONLY;
 END;
