@@ -284,14 +284,14 @@ export function RoomFilters({
         )}
 
         {/* Search Button */}
-        <div className={cn("flex-1", compact ? "md:max-w-[120px]" : "")}>
+        <div className={cn("flex-1", compact ? "md:max-w-[50px]" : "")}>
           <Button
             className="w-full"
             onClick={handleApplyFilters}
             disabled={!isSearchEnabled}
           >
             <Search className="mr-2 h-4 w-4" />
-            Search
+            {!compact && "Search"}
           </Button>
         </div>
       </div>
