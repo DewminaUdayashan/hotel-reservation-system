@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { redirect, useRouter, useSearchParams } from "next/navigation";
 import { format, set } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
@@ -349,7 +349,7 @@ export default function NewReservationForm() {
 
               {totalPrice && (
                 <div className="font-medium">
-                  Total Price: ${(totalPrice * 1.12).toFixed(2)} (incl. 12% tax)
+                  Total Price: ${totalPrice.toFixed(2)}
                 </div>
               )}
 

@@ -21,6 +21,7 @@ export default function RoomsPage() {
     type: filters.roomType?.id,
     maxPrice: filters.maxPrice,
     minPrice: filters.minPrice,
+    hotelId: filters.hotelId,
   });
 
   return (

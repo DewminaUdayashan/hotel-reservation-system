@@ -5,6 +5,7 @@ import { RoomType } from "../types/room";
 // ---- Types ----
 
 export type RoomFilter = {
+  hotelId?: number;
   checkIn?: Date;
   checkOut?: Date;
   roomType?: RoomType;
@@ -22,6 +23,7 @@ interface RoomFilterStore {
 // ---- Defaults ----
 
 const defaultRoomFilters: RoomFilter = {
+  hotelId: undefined,
   checkIn: undefined,
   checkOut: undefined,
   roomType: undefined,

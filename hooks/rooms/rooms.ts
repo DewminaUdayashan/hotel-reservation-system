@@ -1,12 +1,8 @@
 "use client";
 
-import { delay } from "@/lib/api";
 import { Amenity, Room, RoomType, RoomWithType } from "@/lib/types/room";
 import { useQuery } from "@tanstack/react-query";
 import queryKeys from "../query-keys";
-import { useReservations } from "../reservation";
-import { isBetween, isDateRangeOverlapping, today } from "@/lib/utils/moment";
-import { useMemo } from "react";
 import { Image } from "@/lib/types/image";
 import { useAxios } from "@/lib/axios";
 
@@ -62,6 +58,7 @@ interface RoomFilters {
   capacity?: number;
   minPrice?: number;
   maxPrice?: number;
+  hotelId?: number;
 }
 
 const useAllRooms = (filters: RoomFilters) => {

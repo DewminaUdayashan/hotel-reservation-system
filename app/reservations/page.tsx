@@ -7,23 +7,10 @@ import { ChevronLeft, Hotel, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+
 import { AuthDialog } from "@/components/auth-dialog";
-import { toast } from "@/components/ui/use-toast";
-import { Toaster } from "@/components/ui/toaster";
 import { useAuth } from "@/hooks/auth/useAuth";
-import {
-  useCancelReservation,
-  useUserReservations,
-} from "@/hooks/reservations/reservations";
+import { useUserReservations } from "@/hooks/reservations/reservations";
 import { ReservationCard } from "@/components/reservations/reservation-card";
 
 export default function ReservationsPage() {

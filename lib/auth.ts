@@ -1,6 +1,7 @@
 import { NextApiRequest } from "next";
 import { JWT_SECRET } from "./env";
 import { jwtDecode } from "jwt-decode";
+import { NextRequest } from "next/server";
 var jwt = require("jsonwebtoken");
 
 export function verifyToken(req: NextApiRequest) {
@@ -43,4 +44,19 @@ export function getUserFromToken(token: string): DecodedUser | null {
     console.error("Invalid JWT:", err);
     return null;
   }
+}
+
+export function getTokenFromNextRequest(req: NextRequest): string | null {
+  const headers = req.headers;
+  const token = headers.get("authorization")?.split(" ")[1];
+  return token || null;
+}
+
+export function isAdminNextRequest(req: NextRequest): boolean {
+  const token = getTokenFromNextRequest(req);
+  if (!token) return false;
+  const user = getUserFromToken(token);
+  return (
+    user?.role === "admin" || user?.role === "clerk" || user?.role === "manager"
+  );
 }
