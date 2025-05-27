@@ -30,12 +30,32 @@ CREATE TABLE Users (
     createdAt DATETIME DEFAULT GETDATE()
 );
 
+ALTER TABLE Users
+ADD isActive BIT NOT NULL DEFAULT 1;
+
+CREATE TABLE Agencies (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    name NVARCHAR(255) NOT NULL,
+    phone NVARCHAR(50),
+    createdAt DATETIME DEFAULT GETDATE()
+); 
+
 CREATE TABLE Customers (
     id INT PRIMARY KEY,  -- 1-to-1 with Users
     phone NVARCHAR(50) NOT NULL,
     homeTown NVARCHAR(50) NULL,
     FOREIGN KEY (id) REFERENCES Users(id) ON DELETE CASCADE
 );
+
+ALTER TABLE Customers
+ADD
+    customerType NVARCHAR(20) NOT NULL DEFAULT 'individual'
+        CHECK (customerType IN ('individual', 'agency'));
+
+ALTER TABLE Customers
+ADD agencyId INT NULL,
+    FOREIGN KEY (agencyId) REFERENCES Agencies(id) ON DELETE SET NULL;
+ 
 
 CREATE TABLE HotelUsers (
     id INT IDENTITY(1,1) PRIMARY KEY,

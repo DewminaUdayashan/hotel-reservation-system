@@ -11,22 +11,29 @@ import {
   Hotel,
   LogOut,
   Menu,
-  Search,
   Settings,
-  User,
   Users,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { ProtectedRoute } from "@/components/protected-route";
 
+// Updated navItems with submenu
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: BarChart3 },
   { href: "/admin/reservations", label: "Reservations", icon: Calendar },
   { href: "/admin/rooms", label: "Rooms", icon: Building2 },
-  { href: "/admin/customers", label: "Customers", icon: Users },
+  {
+    label: "People",
+    icon: Users,
+    children: [
+      { href: "/admin/users", label: "Users" },
+      { href: "/admin/customers", label: "Customers" },
+    ],
+  },
   { href: "/admin/billing", label: "Billing", icon: CreditCard },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
@@ -37,12 +44,79 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [openSubmenus, setOpenSubmenus] = useState<{
+    [label: string]: boolean;
+  }>({});
   const pathname = usePathname();
+
+  const toggleSubmenu = (label: string) => {
+    setOpenSubmenus((prev) => ({ ...prev, [label]: !prev[label] }));
+  };
+
+  const renderNavItems = (isMobile = false) => (
+    <nav className="grid gap-2 p-4">
+      {navItems.map((item) =>
+        item.children ? (
+          <div key={item.label}>
+            <button
+              onClick={() => toggleSubmenu(item.label)}
+              className={cn(
+                "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-all",
+                "text-muted-foreground hover:text-primary"
+              )}
+            >
+              <item.icon className="h-4 w-4" />
+              {item.label}
+              {openSubmenus[item.label] ? (
+                <ChevronDown className="ml-auto h-4 w-4" />
+              ) : (
+                <ChevronRight className="ml-auto h-4 w-4" />
+              )}
+            </button>
+            {openSubmenus[item.label] && (
+              <div className="ml-6 mt-1 space-y-1">
+                {item.children.map((subItem) => (
+                  <Link
+                    key={subItem.href}
+                    href={subItem.href}
+                    className={cn(
+                      "block rounded-md px-3 py-2 text-sm transition-all",
+                      pathname === subItem.href
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:text-primary"
+                    )}
+                    onClick={() => isMobile && setSidebarOpen(false)}
+                  >
+                    {subItem.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 transition-all",
+              pathname === item.href
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:text-primary"
+            )}
+            onClick={() => isMobile && setSidebarOpen(false)}
+          >
+            <item.icon className="h-4 w-4" />
+            {item.label}
+          </Link>
+        )
+      )}
+    </nav>
+  );
 
   return (
     <ProtectedRoute requireAdmin>
       <div className="flex min-h-screen flex-col">
-        {/* Top Header */}
+        {/* Mobile Header */}
         <header className="md:hidden sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6">
           <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
             <SheetTrigger asChild>
@@ -61,48 +135,23 @@ export default function AdminLayout({
                   <span>LuxeStay Admin</span>
                 </Link>
               </div>
-              <nav className="grid gap-2 px-2">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2 transition-all",
-                      pathname === item.href
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:text-primary"
-                    )}
-                    onClick={() => setSidebarOpen(false)}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    {item.label}
-                  </Link>
-                ))}
-              </nav>
+              {renderNavItems(true)}
+              <div className="mt-auto p-4">
+                <Link href="/auth/logout">
+                  <Button variant="outline" className="w-full justify-start">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Log out
+                  </Button>
+                </Link>
+              </div>
             </SheetContent>
           </Sheet>
         </header>
 
-        {/* Main Content with Sidebar */}
+        {/* Desktop Layout */}
         <div className="flex flex-1">
           <aside className="hidden w-[200px] flex-col border-r bg-muted/40 md:flex">
-            <nav className="grid gap-2 p-4">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 transition-all",
-                    pathname === item.href
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:text-primary"
-                  )}
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
+            {renderNavItems()}
             <div className="mt-auto p-4">
               <Link href="/auth/logout">
                 <Button variant="outline" className="w-full justify-start">

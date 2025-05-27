@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +15,7 @@ import { ReservationCard } from "@/components/reservations/reservation-card";
 import { ReservationWithAdditionalDetails } from "@/lib/types/reservation";
 import { useAllHotels } from "@/hooks/hotels/hotels";
 
-export default function AdminReservationListPage() {
+export default function AdminCustomersListPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string | undefined>(undefined);
@@ -53,7 +52,6 @@ export default function AdminReservationListPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold tracking-tight mb-2">Reservations</h1>
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-4 w-full md:w-auto">
           <Input
@@ -106,11 +104,6 @@ export default function AdminReservationListPage() {
           <ReservationCard key={reservation.id} reservation={reservation} />
         ))}
       </div>
-      {reservations.length === 0 && !isLoading && (
-        <div className="text-center text-muted-foreground">
-          No reservations found.
-        </div>
-      )}
 
       {totalPages > 1 && (
         <div className="flex justify-end mt-4 gap-2">

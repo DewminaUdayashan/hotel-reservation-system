@@ -80,7 +80,7 @@ const formSchema = z
 
 export default function NewReservationForm() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, customer } = useAuth();
 
   const [showAuthDialog, setShowAuthDialog] = useState(false);
 
@@ -99,7 +99,7 @@ export default function NewReservationForm() {
       firstName: user?.firstName ?? "",
       lastName: user?.lastName ?? "",
       email: user?.email ?? "",
-      phone: user?.phone ?? "",
+      phone: customer?.phone ?? "",
       guests: filters.capacity?.toString() || "1",
       specialRequests: "",
       withCreditCard: false,
@@ -174,7 +174,7 @@ export default function NewReservationForm() {
         firstName: user.firstName ?? "",
         lastName: user.lastName ?? "",
         email: user.email ?? "",
-        phone: user.phone ?? "",
+        phone: customer?.phone ?? "",
       });
     }
   }, [user]);
