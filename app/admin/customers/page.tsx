@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,43 +12,51 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useAdminReservations } from "@/hooks/reservations/reservations.admin";
-import { ReservationCard } from "@/components/reservations/reservation-card";
-import { ReservationWithAdditionalDetails } from "@/lib/types/reservation";
-import { useAllHotels } from "@/hooks/hotels/hotels";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Customer } from "@/lib/types/user";
+import { useAdminCustomers } from "@/hooks/users/users.admin";
 
 export default function AdminCustomersListPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<string | undefined>(undefined);
-  const [hotelId, setHotelId] = useState<number | undefined>(undefined);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [customerType, setCustomerType] = useState<string | undefined>(
+    undefined
+  );
+  const [orderDir, setOrderDir] = useState("DESC");
 
-  const { data: hotels } = useAllHotels();
-  const { data, isLoading, isFetching } = useAdminReservations({
+  // Debounce search input
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1); // Reset to page 1 on new search
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [search]);
+
+  const { data, isLoading } = useAdminCustomers({
     page,
-    search,
-    status,
-    hotelId,
-    orderBy: "checkInDate",
-    orderDir: "ASC",
+    search: debouncedSearch,
+    customerType,
+    orderBy: "createdAt",
+    orderDir,
   });
 
-  const reservations: ReservationWithAdditionalDetails[] = data?.data || [];
+  const customers: Customer[] = data?.data || [];
   const total = data?.totalCount || 0;
   const pageSize = 10;
   const totalPages = Math.ceil(total / pageSize);
 
-  const handleStatusChange = (value: string) => {
-    setStatus(value === "any" ? undefined : value);
-    setPage(1);
-  };
-
-  const handleHotelChange = (value: string) => {
-    setHotelId(value === "any" ? undefined : Number(value));
-    setPage(1);
-  };
-
-  const handleSearch = () => {
+  const handleTypeChange = (value: string) => {
+    setCustomerType(value === "any" ? undefined : value);
     setPage(1);
   };
 
@@ -61,48 +71,68 @@ export default function AdminCustomersListPage() {
             onChange={(e) => setSearch(e.target.value)}
             className="w-full md:w-[300px]"
           />
-          <Button onClick={handleSearch}>Search</Button>
         </div>
 
         <div className="flex items-center gap-4 w-full md:w-auto">
-          <Select value={status || "any"} onValueChange={handleStatusChange}>
+          <Select
+            value={customerType || "any"}
+            onValueChange={handleTypeChange}
+          >
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by status" />
+              <SelectValue placeholder="Filter by type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="any">All Statuses</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="confirmed">Confirmed</SelectItem>
-              <SelectItem value="checked-in">Checked-in</SelectItem>
-              <SelectItem value="checked-out">Checked-out</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-              <SelectItem value="no-show">No Show</SelectItem>
+              <SelectItem value="any">All Types</SelectItem>
+              <SelectItem value="individual">Individual</SelectItem>
+              <SelectItem value="agency">Agency</SelectItem>
             </SelectContent>
           </Select>
 
-          <Select
-            value={hotelId?.toString() || "any"}
-            onValueChange={handleHotelChange}
-          >
-            <SelectTrigger className="w-[220px]">
-              <SelectValue placeholder="Filter by hotel" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="any">All Hotels</SelectItem>
-              {hotels?.map((hotel) => (
-                <SelectItem key={hotel.id} value={hotel.id.toString()}>
-                  {hotel.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Link href="/admin/customers/new">
+            <Button variant="default">+ Add Customer</Button>
+          </Link>
         </div>
       </div>
 
-      <div className="grid gap-4">
-        {reservations.map((reservation) => (
-          <ReservationCard key={reservation.id} reservation={reservation} />
-        ))}
+      <div className="rounded-md border overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Phone</TableHead>
+              <TableHead>Joined</TableHead>
+              <TableHead></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {customers.map((cust) => (
+              <TableRow key={cust.id}>
+                <TableCell>{cust.customerId}</TableCell>
+                <TableCell>{cust.email}</TableCell>
+                <TableCell>
+                  {cust.firstName} {cust.lastName}
+                </TableCell>
+                <TableCell className="capitalize">
+                  {cust.customerType}
+                </TableCell>
+                <TableCell>{cust.phone}</TableCell>
+                <TableCell>
+                  {new Date(cust.createdAt).toLocaleDateString()}
+                </TableCell>
+                <TableCell>
+                  <Link href={`/admin/customers/${cust.id}/edit`}>
+                    <Button size="icon" variant="ghost">
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
 
       {totalPages > 1 && (
