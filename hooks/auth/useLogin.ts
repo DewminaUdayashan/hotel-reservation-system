@@ -10,8 +10,12 @@ export const useLogin = () => {
   return useMutation({
     mutationFn: async (data: LoginPayload): Promise<LoginResponse> => {
       const res = await axios.post("/auth/login", data);
-
-      login(res.data.user, res.data.token); // Save to context
+      console.log("Login response:", res.data);
+      login(res.data.user, res.data.token, {
+        customer: res.data.customer || null,
+        agency: res.data.agency || null,
+        hotelUser: res.data.hotelUser || null,
+      }); // Save to context
 
       return res.data;
     },

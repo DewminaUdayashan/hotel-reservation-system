@@ -53,6 +53,9 @@ export default async function handler(
     res.status(200).json({
       message: "Login successful",
       user: fullUser,
+      customer: fullUser || null,
+      agency: fullUser || null,
+      hotelUser: fullUser || null,
       token,
     });
   } catch (err: any) {

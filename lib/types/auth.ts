@@ -1,4 +1,4 @@
-import { User, UserRole } from "./user";
+import { Agency, Customer, HotelUser, User, UserRole } from "./user";
 
 export type LoginPayload = {
   email: string;
@@ -17,4 +17,7 @@ export type LoginResponse = {
   message: string;
   token: string;
   user: User;
+  customer?: Customer;
+  agency?: Agency;
+  hotelUser?: HotelUser;
 };
