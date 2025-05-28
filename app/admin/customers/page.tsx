@@ -22,8 +22,11 @@ import {
 } from "@/components/ui/table";
 import { Customer } from "@/lib/types/user";
 import { useAdminCustomers } from "@/hooks/users/users.admin";
+import { AddCustomerDialog } from "@/components/admin/customers/add-customer-dialog";
+import { toast } from "@/hooks/use-toast";
 
 export default function AdminCustomersListPage() {
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -31,22 +34,22 @@ export default function AdminCustomersListPage() {
     undefined
   );
   const [orderDir, setOrderDir] = useState("DESC");
+  const [orderBy, setOrderBy] = useState("createdAt");
 
-  // Debounce search input
+  // Debounce search
   useEffect(() => {
     const timeout = setTimeout(() => {
       setDebouncedSearch(search);
-      setPage(1); // Reset to page 1 on new search
+      setPage(1);
     }, 500);
-
     return () => clearTimeout(timeout);
   }, [search]);
 
-  const { data, isLoading } = useAdminCustomers({
+  const { data, refetch } = useAdminCustomers({
     page,
     search: debouncedSearch,
     customerType,
-    orderBy: "createdAt",
+    orderBy,
     orderDir,
   });
 
@@ -57,6 +60,16 @@ export default function AdminCustomersListPage() {
 
   const handleTypeChange = (value: string) => {
     setCustomerType(value === "any" ? undefined : value);
+    setPage(1);
+  };
+
+  const handleOrderByChange = (value: string) => {
+    setOrderBy(value);
+    setPage(1);
+  };
+
+  const handleOrderDirChange = (value: string) => {
+    setOrderDir(value);
     setPage(1);
   };
 
@@ -73,12 +86,12 @@ export default function AdminCustomersListPage() {
           />
         </div>
 
-        <div className="flex items-center gap-4 w-full md:w-auto">
+        <div className="flex items-center gap-4 w-full md:w-auto flex-wrap">
           <Select
             value={customerType || "any"}
             onValueChange={handleTypeChange}
           >
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[160px]">
               <SelectValue placeholder="Filter by type" />
             </SelectTrigger>
             <SelectContent>
@@ -87,10 +100,40 @@ export default function AdminCustomersListPage() {
               <SelectItem value="agency">Agency</SelectItem>
             </SelectContent>
           </Select>
+          <h2>Sort By :</h2>
+          <Select value={orderBy} onValueChange={handleOrderByChange}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="createdAt">Joined Date</SelectItem>
+              <SelectItem value="firstName">First Name</SelectItem>
+              <SelectItem value="lastName">Last Name</SelectItem>
+              <SelectItem value="email">Email</SelectItem>
+            </SelectContent>
+          </Select>
 
-          <Link href="/admin/customers/new">
-            <Button variant="default">+ Add Customer</Button>
-          </Link>
+          <Select value={orderDir} onValueChange={handleOrderDirChange}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Order" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ASC">Ascending</SelectItem>
+              <SelectItem value="DESC">Descending</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <AddCustomerDialog
+            isOpen={isAddDialogOpen}
+            onClose={() => setIsAddDialogOpen(false)}
+            onSuccess={() => {
+              refetch();
+              toast({
+                title: "Customer added successfully",
+                description: "The new customer account has been created.",
+              });
+            }}
+          />
         </div>
       </div>
 
@@ -108,26 +151,24 @@ export default function AdminCustomersListPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {customers.map((cust) => (
-              <TableRow key={cust.id}>
-                <TableCell>{cust.customerId}</TableCell>
-                <TableCell>{cust.email}</TableCell>
+            {customers.map((customer) => (
+              <TableRow key={customer.id}>
+                <TableCell>{customer.customerId}</TableCell>
+                <TableCell>{customer.email}</TableCell>
                 <TableCell>
-                  {cust.firstName} {cust.lastName}
+                  {customer.firstName} {customer.lastName}
                 </TableCell>
                 <TableCell className="capitalize">
-                  {cust.customerType}
+                  {customer.customerType}
                 </TableCell>
-                <TableCell>{cust.phone}</TableCell>
+                <TableCell>{customer.phone}</TableCell>
                 <TableCell>
-                  {new Date(cust.createdAt).toLocaleDateString()}
+                  {new Date(customer.createdAt).toLocaleDateString()}
                 </TableCell>
                 <TableCell>
-                  <Link href={`/admin/customers/${cust.id}/edit`}>
-                    <Button size="icon" variant="ghost">
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  </Link>
+                  <Button size="icon" variant="ghost">
+                    <Pencil className="h-4 w-4" />
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}

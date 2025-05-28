@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,34 +12,53 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useAdminReservations } from "@/hooks/reservations/reservations.admin";
-import { ReservationCard } from "@/components/reservations/reservation-card";
-import { ReservationWithAdditionalDetails } from "@/lib/types/reservation";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { HotelUser, User } from "@/lib/types/user";
 import { useAllHotels } from "@/hooks/hotels/hotels";
+import { useAdminUsers } from "@/hooks/users/users.admin";
+import { AddUserDialog } from "@/components/admin/users/add-user-dialog";
+import { useAuth } from "@/hooks/auth/useAuth";
+import { UserRowItem } from "@/components/admin/users/user-row-item";
 
-export default function AdminCustomersListPage() {
+export default function AdminUsersListPage() {
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<string | undefined>(undefined);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [role, setRole] = useState<string | undefined>(undefined);
   const [hotelId, setHotelId] = useState<number | undefined>(undefined);
 
   const { data: hotels } = useAllHotels();
-  const { data, isLoading, isFetching } = useAdminReservations({
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timeout);
+  }, [search]);
+
+  const { data, refetch } = useAdminUsers({
     page,
-    search,
-    status,
+    search: debouncedSearch,
+    role,
     hotelId,
-    orderBy: "checkInDate",
-    orderDir: "ASC",
   });
 
-  const reservations: ReservationWithAdditionalDetails[] = data?.data || [];
+  const users: HotelUser[] = data?.data || [];
   const total = data?.totalCount || 0;
   const pageSize = 10;
   const totalPages = Math.ceil(total / pageSize);
 
-  const handleStatusChange = (value: string) => {
-    setStatus(value === "any" ? undefined : value);
+  const handleRoleChange = (value: string) => {
+    setRole(value === "any" ? undefined : value);
     setPage(1);
   };
 
@@ -46,38 +67,29 @@ export default function AdminCustomersListPage() {
     setPage(1);
   };
 
-  const handleSearch = () => {
-    setPage(1);
-  };
-
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold tracking-tight mb-2">Users</h1>
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-4 w-full md:w-auto">
           <Input
             type="text"
-            placeholder="Search by name, email or ID"
+            placeholder="Search by name or email"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full md:w-[300px]"
           />
-          <Button onClick={handleSearch}>Search</Button>
         </div>
 
-        <div className="flex items-center gap-4 w-full md:w-auto">
-          <Select value={status || "any"} onValueChange={handleStatusChange}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by status" />
+        <div className="flex items-center gap-4 w-full md:w-auto flex-wrap">
+          <Select value={role || "any"} onValueChange={handleRoleChange}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Filter by role" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="any">All Statuses</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="confirmed">Confirmed</SelectItem>
-              <SelectItem value="checked-in">Checked-in</SelectItem>
-              <SelectItem value="checked-out">Checked-out</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-              <SelectItem value="no-show">No Show</SelectItem>
+              <SelectItem value="any">All Roles</SelectItem>
+              <SelectItem value="clerk">Clerk</SelectItem>
+              <SelectItem value="manager">Manager</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
             </SelectContent>
           </Select>
 
@@ -97,13 +109,35 @@ export default function AdminCustomersListPage() {
               ))}
             </SelectContent>
           </Select>
+
+          <AddUserDialog
+            isOpen={isAddDialogOpen}
+            onClose={() => setIsAddDialogOpen(false)}
+            onSuccess={refetch}
+          />
         </div>
       </div>
 
-      <div className="grid gap-4">
-        {reservations.map((reservation) => (
-          <ReservationCard key={reservation.id} reservation={reservation} />
-        ))}
+      <div className="rounded-md border overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-1"></TableHead>
+              <TableHead>ID</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Hotel</TableHead>
+              <TableHead>Joined</TableHead>
+              <TableHead>Edit</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {users.map((user) => (
+              <UserRowItem key={user.id} user={user} onUpdate={refetch} />
+            ))}
+          </TableBody>
+        </Table>
       </div>
 
       {totalPages > 1 && (
