@@ -37,9 +37,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     token: string,
     options?: { customer?: Customer; agency?: Agency; hotelUser?: HotelUser }
   ) => {
-    console.log("Logging in user:", user);
-    console.log("With token:", token);
-    console.log("With options:", options);
     localStorage.setItem("authToken", token);
     localStorage.setItem("authUser", JSON.stringify(user));
     if (options?.customer)

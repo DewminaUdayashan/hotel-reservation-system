@@ -8,4 +8,5 @@ export default {
   userReservations: "userReservations",
   users: "users",
   adminReservations: "adminReservations",
+  adminCustomers: "adminCustomers",
 };

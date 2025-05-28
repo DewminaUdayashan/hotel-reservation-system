@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,43 +12,64 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useAdminReservations } from "@/hooks/reservations/reservations.admin";
-import { ReservationCard } from "@/components/reservations/reservation-card";
-import { ReservationWithAdditionalDetails } from "@/lib/types/reservation";
-import { useAllHotels } from "@/hooks/hotels/hotels";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Customer } from "@/lib/types/user";
+import { useAdminCustomers } from "@/hooks/users/users.admin";
+import { AddCustomerDialog } from "@/components/admin/customers/add-customer-dialog";
+import { toast } from "@/hooks/use-toast";
 
 export default function AdminCustomersListPage() {
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<string | undefined>(undefined);
-  const [hotelId, setHotelId] = useState<number | undefined>(undefined);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [customerType, setCustomerType] = useState<string | undefined>(
+    undefined
+  );
+  const [orderDir, setOrderDir] = useState("DESC");
+  const [orderBy, setOrderBy] = useState("createdAt");
 
-  const { data: hotels } = useAllHotels();
-  const { data, isLoading, isFetching } = useAdminReservations({
+  // Debounce search
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timeout);
+  }, [search]);
+
+  const { data, refetch } = useAdminCustomers({
     page,
-    search,
-    status,
-    hotelId,
-    orderBy: "checkInDate",
-    orderDir: "ASC",
+    search: debouncedSearch,
+    customerType,
+    orderBy,
+    orderDir,
   });
 
-  const reservations: ReservationWithAdditionalDetails[] = data?.data || [];
+  const customers: Customer[] = data?.data || [];
   const total = data?.totalCount || 0;
   const pageSize = 10;
   const totalPages = Math.ceil(total / pageSize);
 
-  const handleStatusChange = (value: string) => {
-    setStatus(value === "any" ? undefined : value);
+  const handleTypeChange = (value: string) => {
+    setCustomerType(value === "any" ? undefined : value);
     setPage(1);
   };
 
-  const handleHotelChange = (value: string) => {
-    setHotelId(value === "any" ? undefined : Number(value));
+  const handleOrderByChange = (value: string) => {
+    setOrderBy(value);
     setPage(1);
   };
 
-  const handleSearch = () => {
+  const handleOrderDirChange = (value: string) => {
+    setOrderDir(value);
     setPage(1);
   };
 
@@ -61,48 +84,96 @@ export default function AdminCustomersListPage() {
             onChange={(e) => setSearch(e.target.value)}
             className="w-full md:w-[300px]"
           />
-          <Button onClick={handleSearch}>Search</Button>
         </div>
 
-        <div className="flex items-center gap-4 w-full md:w-auto">
-          <Select value={status || "any"} onValueChange={handleStatusChange}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by status" />
+        <div className="flex items-center gap-4 w-full md:w-auto flex-wrap">
+          <Select
+            value={customerType || "any"}
+            onValueChange={handleTypeChange}
+          >
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Filter by type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="any">All Statuses</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="confirmed">Confirmed</SelectItem>
-              <SelectItem value="checked-in">Checked-in</SelectItem>
-              <SelectItem value="checked-out">Checked-out</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-              <SelectItem value="no-show">No Show</SelectItem>
+              <SelectItem value="any">All Types</SelectItem>
+              <SelectItem value="individual">Individual</SelectItem>
+              <SelectItem value="agency">Agency</SelectItem>
+            </SelectContent>
+          </Select>
+          <h2>Sort By :</h2>
+          <Select value={orderBy} onValueChange={handleOrderByChange}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="createdAt">Joined Date</SelectItem>
+              <SelectItem value="firstName">First Name</SelectItem>
+              <SelectItem value="lastName">Last Name</SelectItem>
+              <SelectItem value="email">Email</SelectItem>
             </SelectContent>
           </Select>
 
-          <Select
-            value={hotelId?.toString() || "any"}
-            onValueChange={handleHotelChange}
-          >
-            <SelectTrigger className="w-[220px]">
-              <SelectValue placeholder="Filter by hotel" />
+          <Select value={orderDir} onValueChange={handleOrderDirChange}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Order" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="any">All Hotels</SelectItem>
-              {hotels?.map((hotel) => (
-                <SelectItem key={hotel.id} value={hotel.id.toString()}>
-                  {hotel.name}
-                </SelectItem>
-              ))}
+              <SelectItem value="ASC">Ascending</SelectItem>
+              <SelectItem value="DESC">Descending</SelectItem>
             </SelectContent>
           </Select>
+
+          <AddCustomerDialog
+            isOpen={isAddDialogOpen}
+            onClose={() => setIsAddDialogOpen(false)}
+            onSuccess={() => {
+              refetch();
+              toast({
+                title: "Customer added successfully",
+                description: "The new customer account has been created.",
+              });
+            }}
+          />
         </div>
       </div>
 
-      <div className="grid gap-4">
-        {reservations.map((reservation) => (
-          <ReservationCard key={reservation.id} reservation={reservation} />
-        ))}
+      <div className="rounded-md border overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Phone</TableHead>
+              <TableHead>Joined</TableHead>
+              <TableHead></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {customers.map((customer) => (
+              <TableRow key={customer.id}>
+                <TableCell>{customer.customerId}</TableCell>
+                <TableCell>{customer.email}</TableCell>
+                <TableCell>
+                  {customer.firstName} {customer.lastName}
+                </TableCell>
+                <TableCell className="capitalize">
+                  {customer.customerType}
+                </TableCell>
+                <TableCell>{customer.phone}</TableCell>
+                <TableCell>
+                  {new Date(customer.createdAt).toLocaleDateString()}
+                </TableCell>
+                <TableCell>
+                  <Button size="icon" variant="ghost">
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
 
       {totalPages > 1 && (

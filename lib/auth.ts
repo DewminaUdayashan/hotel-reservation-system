@@ -29,13 +29,13 @@ export interface DecodedUser {
 export function getUserFromToken(token: string): DecodedUser | null {
   try {
     const decoded = jwtDecode<DecodedUser>(token);
-
     if (!decoded?.id) {
       return null;
     }
 
     // Optional: validate expiration
     if (decoded.exp && decoded.exp < Date.now() / 1000) {
+      console.warn("Token has expired");
       return null; // token expired
     }
 
