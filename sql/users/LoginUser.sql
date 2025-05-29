@@ -7,7 +7,7 @@ BEGIN
 
     SELECT 
         -- User
-        U.id AS userId,
+        U.id AS id,
         U.email,
         U.firstName,
         U.lastName,
