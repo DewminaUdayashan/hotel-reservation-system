@@ -1,12 +1,13 @@
 const sql = require("mssql");
 
 const config = {
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  server: process.env.DB_SERVER, // e.g., your-db-server.database.windows.net
-  database: process.env.DB_NAME,
+  user: process.env.DB_USER, // e.g., 'sa' or another SQL login
+  password: process.env.DB_PASSWORD, // Your SQL login password
+  server: process.env.DB_SERVER, // IP or hostname of your Windows Server
+  database: process.env.DB_NAME, // The name of the DB you created
   options: {
-    encrypt: true, // Required for Azure
+    encrypt: false, // Set to false unless you're using SSL
+    trustServerCertificate: true, // Required if self-signed certs are used
   },
 };
 
