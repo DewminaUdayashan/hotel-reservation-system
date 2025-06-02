@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +14,7 @@ import { useAdminReservations } from "@/hooks/reservations/reservations.admin";
 import { ReservationCard } from "@/components/reservations/reservation-card";
 import { ReservationWithAdditionalDetails } from "@/lib/types/reservation";
 import { useAllHotels } from "@/hooks/hotels/hotels";
+import { ReservationCardAdmin } from "@/components/admin/reservations/reservation-card.admin";
 
 export default function AdminReservationListPage() {
   const [page, setPage] = useState(1);
@@ -103,7 +103,10 @@ export default function AdminReservationListPage() {
 
       <div className="grid gap-4">
         {reservations.map((reservation) => (
-          <ReservationCard key={reservation.id} reservation={reservation} />
+          <ReservationCardAdmin
+            key={reservation.id}
+            reservation={reservation}
+          />
         ))}
       </div>
       {reservations.length === 0 && !isLoading && (

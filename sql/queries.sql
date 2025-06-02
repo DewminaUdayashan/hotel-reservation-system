@@ -161,6 +161,10 @@ CREATE TABLE ReservationPayments (
     FOREIGN KEY (reservationId) REFERENCES Reservations(id) ON DELETE CASCADE
 );
 
+
+ALTER TABLE ReservationPayments
+ADD bankName NVARCHAR(255) NULL;
+
 CREATE TABLE AssignedRooms (
     id INT IDENTITY(1,1) PRIMARY KEY,
     reservationId INT NOT NULL,
