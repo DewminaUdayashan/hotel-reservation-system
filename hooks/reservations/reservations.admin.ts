@@ -1,6 +1,10 @@
 import { useAxios } from "@/lib/axios";
-import { AdminReservationResponse } from "@/lib/types/reservation";
-import { useQuery } from "@tanstack/react-query";
+import {
+  AdminReservationResponse,
+  ReservationStatusAction,
+} from "@/lib/types/reservation";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import queryKeys from "../query-keys";
 
 type AdminReservationFilters = {
   page?: number;
@@ -18,7 +22,7 @@ export const useAdminReservations = (filters: AdminReservationFilters) => {
   const axios = useAxios();
 
   return useQuery<AdminReservationResponse>({
-    queryKey: ["admin-reservations", filters],
+    queryKey: [queryKeys.adminReservations, filters],
     queryFn: async () => {
       const params = new URLSearchParams();
 
@@ -39,5 +43,48 @@ export const useAdminReservations = (filters: AdminReservationFilters) => {
       return res.data;
     },
     enabled: !!filters,
+  });
+};
+
+export interface AdminUpdateReservationInput {
+  checkInDate?: string;
+  checkOutDate?: string;
+  numberOfGuests?: number;
+  specialRequests?: string;
+  cardHolderName?: string;
+  maskedCardNumber?: string;
+  cardType?: string;
+  expiryMonth?: number;
+  expiryYear?: number;
+  bankName?: string;
+}
+
+export function useAdminUpdateReservation(id: number) {
+  const axios = useAxios();
+
+  return useMutation({
+    mutationFn: async (data: AdminUpdateReservationInput) => {
+      const res = await axios.post(`/admin/reservations/${id}/update`, data);
+      return res.data;
+    },
+  });
+}
+
+export const useUpdateReservationStatus = (id: number) => {
+  const axios = useAxios();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ action }: { action: ReservationStatusAction }) => {
+      const res = await axios.post(`/admin/reservations/${id}/status`, {
+        action,
+      });
+      return res.data;
+    },
+    onSuccess() {
+      queryClient.invalidateQueries({
+        queryKey: [queryKeys.adminReservations],
+      });
+    },
   });
 };

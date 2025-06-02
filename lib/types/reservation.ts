@@ -12,6 +12,8 @@ export type PaymentMethod =
   | "cash"
   | "bank-transfer";
 
+export type ReservationStatusAction = "check-in" | "check-out";
+
 export type AdditionalCharge = {
   id: number;
   description: string;
