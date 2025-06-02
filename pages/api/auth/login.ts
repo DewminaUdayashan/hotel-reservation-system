@@ -3,7 +3,7 @@ import { executeQuery } from "../../../lib/db";
 import bcrypt from "bcryptjs";
 var jwt = require("jsonwebtoken");
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"; // Use .env for production
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export default async function handler(
   req: NextApiRequest,
@@ -12,54 +12,81 @@ export default async function handler(
   if (req.method !== "POST")
     return res.status(405).json({ error: "Method not allowed" });
 
+  const { email, password } = req.body;
+
+  if (!email || !password)
+    return res.status(400).json({ error: "Email and password are required" });
+
   try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: "Email and password are required" });
-    }
-
-    // Fetch stored hash
-    const users = await executeQuery(
-      "SELECT email, passwordHash FROM Users WHERE email = @Email",
-      [{ name: "Email", value: email }]
-    );
-
-    if (users.length === 0)
-      return res.status(401).json({ error: "Invalid credentials" });
-
-    const user = users[0];
-    const isValid = await bcrypt.compare(password, user.passwordHash);
-    if (!isValid) return res.status(401).json({ error: "Invalid credentials" });
-
-    // Fetch full user data including customer info
-    const result = await executeQuery("EXEC LoginUser @Email, @PasswordHash", [
+    const result = await executeQuery("EXEC LoginUser @Email", [
       { name: "Email", value: email },
-      { name: "PasswordHash", value: user.passwordHash },
     ]);
 
-    const fullUser = result[0];
+    const user = result[0];
 
-    // Generate JWT
+    if (!user || !user.passwordHash) {
+      return res.status(401).json({ error: "Invalid credentials." });
+    }
+
+    const isValid = await bcrypt.compare(password, user.passwordHash);
+    if (!isValid) {
+      return res.status(401).json({ error: "Invalid credentials." });
+    }
+
+    // Remove passwordHash before sending response
+    delete user.passwordHash;
+
     const token = jwt.sign(
       {
-        id: fullUser.id,
-        email: fullUser.email,
-        role: fullUser.role,
+        id: user.id,
+        email: user.email,
+        role: user.role,
       },
       JWT_SECRET,
       { expiresIn: "7d" }
     );
+
     res.status(200).json({
       message: "Login successful",
-      user: fullUser,
-      customer: fullUser || null,
-      agency: fullUser || null,
-      hotelUser: fullUser || null,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        createdAt: user.createdAt,
+        isActive: user.isActive,
+      },
+      customer: user.customerId
+        ? {
+            id: user.customerId,
+            phone: user.phone,
+            homeTown: user.homeTown,
+            customerType: user.customerType,
+            agencyId: user.agencyId,
+          }
+        : null,
+      agency: user.agencyId
+        ? {
+            id: user.agencyId,
+            name: user.agencyName,
+            phone: user.agencyPhone,
+            createdAt: user.agencyCreatedAt,
+          }
+        : null,
+      hotelUser: user.hotelUserId
+        ? {
+            id: user.hotelUserId,
+            hotelId: user.hotelId,
+            hotelName: user.hotelName,
+          }
+        : null,
       token,
     });
   } catch (err: any) {
-    console.error("Login failed:", err);
-    res.status(500).json({ error: err.message || "Login failed" });
+    const sqlErrorMessage = err.originalError?.info?.message;
+    const message = sqlErrorMessage || err.message || "Login failed";
+
+    res.status(500).json({ error: message });
   }
 }

@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLogin } from "@/hooks/auth/useLogin";
 import { useRegister } from "@/hooks/auth/useRegister";
+import { toast } from "@/hooks/use-toast";
 
 type AuthDialogProps = {
   open: boolean;
@@ -119,9 +120,20 @@ export function AuthDialog({
           password: formData.password,
         },
         {
-          onSuccess: (data) => {
+          onSuccess: () => {
             onOpenChange(false);
             if (onSuccessCallback) onSuccessCallback();
+          },
+          onError: (error: any) => {
+            const errorMessage =
+              error.response.data.error || "Failed to login.";
+
+            setErrors((prev) => ({ ...prev, password: errorMessage }));
+            toast({
+              title: "Error",
+              description: errorMessage,
+              variant: "destructive",
+            });
           },
         }
       );
