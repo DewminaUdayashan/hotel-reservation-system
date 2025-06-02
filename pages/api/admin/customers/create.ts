@@ -72,7 +72,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       rawPassword,
     });
   } catch (error: any) {
-    console.error("Error creating customer:", error);
     // Extract SQL error message if available
     const sqlErrorMessage =
       error?.originalError?.info?.message ||
