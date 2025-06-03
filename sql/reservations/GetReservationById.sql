@@ -18,7 +18,7 @@ BEGIN
         r.status,
         ISNULL(i.status, 'unpaid') AS paymentStatus,
         ISNULL(i.paymentMethod, 'cash') AS paymentMethod,
-        ISNULL(i.totalAmount, 0.00) AS totalAmount,
+        ISNULL(i.totalAmount, DATEDIFF(DAY, r.checkInDate, r.checkOutDate) * rt.price) AS totalAmount,
         r.specialRequests,
         r.createdAt,
         rm.name AS roomName,

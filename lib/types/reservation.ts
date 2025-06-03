@@ -6,11 +6,7 @@ export type ReservationStatus =
   | "cancelled"
   | "no-show";
 export type PaymentStatus = "paid" | "unpaid" | "partially_paid";
-export type PaymentMethod =
-  | "credit-card"
-  | "debit-card"
-  | "cash"
-  | "bank-transfer";
+export type PaymentMethod = "credit-card" | "cash";
 
 export type ReservationStatusAction = "check-in" | "check-out";
 

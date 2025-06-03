@@ -118,6 +118,14 @@ export const ReservationCardAdmin = ({ reservation }: Props) => {
       action = "check-in";
     } else if (reservation.status === "checked-in") {
       action = "check-out";
+      router.push(
+        `/admin/reservations/${
+          reservation.id
+        }/invoice-builder?checkOut=${encodeURIComponent(
+          new Date().toISOString()
+        )}`
+      );
+      return;
     }
 
     updateStatusMutation.mutate(
@@ -190,7 +198,7 @@ export const ReservationCardAdmin = ({ reservation }: Props) => {
             <div className="flex items-center justify-between text-sm">
               <span>Total Amount:</span>
               <span className="font-medium">
-                ${reservation.totalAmount.toFixed(2)}
+                ${reservation.totalAmount?.toFixed(2)}
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">

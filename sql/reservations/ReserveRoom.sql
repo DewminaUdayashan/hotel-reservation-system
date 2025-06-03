@@ -65,39 +65,39 @@ BEGIN
 
     DECLARE @reservationId INT = SCOPE_IDENTITY();
 
-    -- Create Invoice
-    INSERT INTO Invoices (
-        reservationId,
-        invoiceDate,
-        dueDate,
-        totalAmount,
-        status,
-        paymentMethod
-    )
-    VALUES (
-        @reservationId,
-        GETDATE(),
-        @checkInDate,              -- Due at check-in
-        @roomCharge,
-        'unpaid',
-        NULL
-    );
+    -- -- Create Invoice
+    -- INSERT INTO Invoices (
+    --     reservationId,
+    --     invoiceDate,
+    --     dueDate,
+    --     totalAmount,
+    --     status,
+    --     paymentMethod
+    -- )
+    -- VALUES (
+    --     @reservationId,
+    --     GETDATE(),
+    --     @checkInDate,              -- Due at check-in
+    --     @roomCharge,
+    --     'unpaid',
+    --     NULL
+    -- );
 
-    DECLARE @invoiceId INT = SCOPE_IDENTITY();
+    -- DECLARE @invoiceId INT = SCOPE_IDENTITY();
 
-    -- Add Invoice Line Item for room charge
-    INSERT INTO InvoiceLineItems (
-        invoiceId,
-        description,
-        amount,
-        serviceTypeId  -- NULL for room charge
-    )
-    VALUES (
-        @invoiceId,
-        CONCAT('Room charge for ', @nights, ' night(s)'),
-        @roomCharge,
-        NULL
-    );
+    -- -- Add Invoice Line Item for room charge
+    -- INSERT INTO InvoiceLineItems (
+    --     invoiceId,
+    --     description,
+    --     amount,
+    --     serviceTypeId  -- NULL for room charge
+    -- )
+    -- VALUES (
+    --     @invoiceId,
+    --     CONCAT('Room charge for ', @nights, ' night(s)'),
+    --     @roomCharge,
+    --     NULL
+    -- );
 
     SELECT @reservationId AS reservationId;
 END;

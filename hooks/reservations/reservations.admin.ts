@@ -1,10 +1,12 @@
 import { useAxios } from "@/lib/axios";
 import {
   AdminReservationResponse,
+  PaymentMethod,
   ReservationStatusAction,
 } from "@/lib/types/reservation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import queryKeys from "../query-keys";
+import { InvoicePayload } from "@/lib/types/invoice";
 
 type AdminReservationFilters = {
   page?: number;
@@ -80,6 +82,34 @@ export const useUpdateReservationStatus = (id: number) => {
         action,
       });
       return res.data;
+    },
+    onSuccess() {
+      queryClient.invalidateQueries({
+        queryKey: [queryKeys.adminReservations],
+      });
+    },
+  });
+};
+
+export const useCheckoutAndBilling = (id: number) => {
+  const axios = useAxios();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      lineItems,
+      paymentMethod,
+      amountPaid,
+      transactionId,
+      dueDate,
+    }: InvoicePayload) => {
+      const response = await axios.post(`/admin/reservations/${id}/checkout`, {
+        lineItems,
+        paymentMethod,
+        amountPaid,
+        transactionId: transactionId || null,
+        dueDate,
+      });
+      return response.data;
     },
     onSuccess() {
       queryClient.invalidateQueries({
