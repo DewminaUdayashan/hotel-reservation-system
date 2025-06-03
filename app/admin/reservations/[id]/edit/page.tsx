@@ -64,7 +64,6 @@ import { useRoomAvailability } from "@/hooks/rooms/rooms";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { isWithin24Hours } from "@/lib/utils/moment";
-import Cards, { Focused } from "react-credit-cards-2";
 import { useAdminUpdateReservation } from "@/hooks/reservations/reservations.admin";
 
 // Form validation schema
