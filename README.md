@@ -1,36 +1,136 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Hotel Reservation System
 
-## Getting Started
+A hotel reservation management platform built with **Next.js**, **SQL Server**, and **Node.js**. The system supports reservation management, invoicing, check-in/check-out, and admin dashboard functionalities.
 
-First, run the development server:
+---
+
+## 🛠️ Tech Stack
+
+- **Frontend & Backend**: Next.js (API Routes)
+- **Database**: Microsoft SQL Server
+- **ORM**: Custom SQL stored procedures with `mssql`
+- **Scheduling**: `node-cron`
+- **Auth**: JWT-based admin authentication
+- **Env Handling**: `dotenv`
+
+---
+
+## 🚀 Getting Started
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/your-username/hotel-reservation-system.git
+cd hotel-reservation-system
+```
+
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+### 3. Setup `.env` Files
+
+Create a `.env.local` file in the root directory and configure the following:
+
+```env
+DB_USER=
+DB_PASSWORD=
+DB_SERVER=
+DB_NAME=
+JWT_SECRET=
+INTERNAL_CRON_SECRET=
+```
+
+Create a `.env` file in the root directory and configure the following:
+
+```env
+INTERNAL_CRON_SECRET=
+```
+
+---
+
+## 🖥️ Running the App Locally
+
+### Development Mode
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🧠 Admin Authentication
 
-## Learn More
+All admin APIs are protected using JWT-based middleware. Ensure you log in with an admin account to access routes under `/api/admin/*`.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🔄 Auto-Cancel Unconfirmed Reservations
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Unconfirmed reservations are **automatically cancelled every day at 7:00 PM** via a background script.
 
-## Deploy on Vercel
+### Script Location
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+lib/scripts/autoCancel.js
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### How to Run the Script
+
+1. **Ensure `.env` is set up** with `INTERNAL_CRON_SECRET`.
+
+2. **Run once manually:**
+
+```bash
+npm run auto-cancel
+```
+
+> This runs:
+```bash
+npx node lib/scripts/autoCancel.js
+```
+
+3. **To keep it running on a schedule (e.g., daily):**
+
+Either:
+- Keep a terminal tab open:
+  ```bash
+  node lib/scripts/autoCancel.js
+  ```
+  It will run daily at the scheduled time using `node-cron`.
+
+Or:
+- Use a process manager like `pm2`:
+  ```bash
+  pm2 start lib/scripts/autoCancel.js --name auto-cancel
+  ```
+
+---
+
+## 📦 Scripts
+
+| Script             | Description                                 |
+|--------------------|---------------------------------------------|
+| `npm run dev`      | Starts the Next.js dev server               |
+| `npm run build`    | Builds the app for production               |
+| `npm run start`    | Runs the production build                   |
+| `npm run auto-cancel` | Executes the auto-cancel script manually |
+
+---
+
+## 🧪 Database
+
+- All major actions (e.g., reservation updates, invoicing) are handled via **stored procedures**.
+- Stored procedures include: `CreateInvoiceAndCheckout`, `GetAllReservationsForAdmin`, `GetReservationById`, etc.
+
+---
+
+## ✅ License
+
+This project is for academic purposes under the coursework of ESOFT – **CS6003ES: Admin Module**.
+
+---
