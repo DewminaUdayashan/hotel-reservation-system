@@ -1,6 +1,5 @@
 CREATE OR ALTER PROCEDURE LoginUser
-    @Email NVARCHAR(255),
-    @PasswordHash NVARCHAR(255)
+    @Email NVARCHAR(255)
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -14,6 +13,9 @@ BEGIN
         U.role,
         U.createdAt,
         U.isActive,
+        U.isEmailVerified,
+        U.mustResetPassword,
+        U.passwordHash,
 
         -- Customer (nullable)
         C.id AS customerId,
@@ -38,5 +40,5 @@ BEGIN
     LEFT JOIN Agencies A ON C.agencyId = A.id
     LEFT JOIN HotelUsers HU ON U.id = HU.userId
     LEFT JOIN Hotels H ON HU.hotelId = H.id
-    WHERE U.email = @Email AND U.passwordHash = @PasswordHash;
+    WHERE U.email = @Email;
 END;

@@ -41,7 +41,7 @@ import { DateRangePicker } from "@/components/shared/date-range-picker";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 import { toast } from "@/hooks/use-toast";
-import { AuthDialog } from "@/components/auth-dialog";
+import { AuthDialog } from "@/components/auth/auth-dialog";
 
 const formSchema = z
   .object({

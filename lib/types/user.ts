@@ -9,6 +9,8 @@ export type User = {
   role: UserRole;
   isActive: boolean;
   createdAt: string;
+  isEmailVerified: boolean;
+  mustResetPassword: boolean;
 };
 
 export type Customer = User & {

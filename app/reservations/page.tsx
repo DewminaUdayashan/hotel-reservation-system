@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
-import { AuthDialog } from "@/components/auth-dialog";
+import { AuthDialog } from "@/components/auth/auth-dialog";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useUserReservations } from "@/hooks/reservations/reservations";
 import { ReservationCard } from "@/components/reservations/reservation-card";

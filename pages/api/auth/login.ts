@@ -1,6 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { executeQuery } from "../../../lib/db";
 import bcrypt from "bcryptjs";
+import { generateCode } from "@/lib/utils/code";
+
 var jwt = require("jsonwebtoken");
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -36,6 +38,42 @@ export default async function handler(
     // Remove passwordHash before sending response
     delete user.passwordHash;
 
+    if (!user.isEmailVerified || user.mustResetPassword) {
+      if (!user.isEmailVerified) {
+        const verificationToken = generateCode();
+        // Update user with verification token
+        await fetch(
+          `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/auth/update-verification-token`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email: user.email,
+              token: verificationToken,
+            }),
+          }
+        );
+      }
+      return res.status(200).json({
+        message: "Login successful",
+        isEmailVerified: user.isEmailVerified,
+        mustResetPassword: user.mustResetPassword,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          createdAt: user.createdAt,
+          isActive: user.isActive,
+          isEmailVerified: user.isEmailVerified,
+          mustResetPassword: user.mustResetPassword,
+        },
+      });
+    }
+
     const token = jwt.sign(
       {
         id: user.id,
@@ -48,6 +86,8 @@ export default async function handler(
 
     res.status(200).json({
       message: "Login successful",
+      isEmailVerified: user.isEmailVerified,
+      mustResetPassword: user.mustResetPassword,
       user: {
         id: user.id,
         email: user.email,
@@ -56,6 +96,8 @@ export default async function handler(
         role: user.role,
         createdAt: user.createdAt,
         isActive: user.isActive,
+        isEmailVerified: user.isEmailVerified,
+        mustResetPassword: user.mustResetPassword,
       },
       customer: user.customerId
         ? {
