@@ -18,9 +18,6 @@ export function middleware(request: NextRequest) {
 
   // Allow internal requests with the correct secret
   const cronSecret = request.headers.get("Authorization");
-
-  console.log("Cron Secret:", cronSecret, "Expected:", CRON_SECRET);
-
   if (cronSecret && cronSecret === CRON_SECRET) {
     return NextResponse.next();
   }
