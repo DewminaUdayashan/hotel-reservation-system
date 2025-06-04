@@ -62,7 +62,7 @@ export function Header() {
             </Link>
           </AdminOnly>
 
-          {!user ? (
+          {!user || !user.isEmailVerified || user.mustResetPassword ? (
             <Button size="sm" onClick={() => setShowAuthDialog(true)}>
               <User className="h-4 w-4 mr-2" />
               Login
