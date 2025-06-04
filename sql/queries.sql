@@ -33,6 +33,13 @@ CREATE TABLE Users (
 ALTER TABLE Users
 ADD isActive BIT NOT NULL DEFAULT 1;
 
+ALTER TABLE Users
+ADD
+    isEmailVerified BIT NOT NULL DEFAULT 0,
+    emailVerificationToken UNIQUEIDENTIFIER NULL,
+    mustResetPassword BIT NOT NULL DEFAULT 0;
+
+
 CREATE TABLE Agencies (
     id INT IDENTITY(1,1) PRIMARY KEY,
     name NVARCHAR(255) NOT NULL,

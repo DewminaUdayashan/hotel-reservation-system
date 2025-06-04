@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Button } from "../ui/button";
 import { Hotel, LogOutIcon, User } from "lucide-react";
-import { AuthDialog } from "../auth-dialog";
+import { AuthDialog } from "../auth/auth-dialog";
 import { useState } from "react";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { toast } from "@/hooks/use-toast";

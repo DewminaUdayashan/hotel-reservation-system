@@ -20,4 +20,6 @@ export type LoginResponse = {
   customer?: Customer;
   agency?: Agency;
   hotelUser?: HotelUser;
+  isEmailVerified?: boolean;
+  mustResetPassword?: boolean;
 };

@@ -5,7 +5,8 @@ CREATE OR ALTER PROCEDURE RegisterUser
     @LastName NVARCHAR(100),
     @Role NVARCHAR(50),
     @Phone NVARCHAR(50),
-    @HomeTown NVARCHAR(50) = NULL
+    @HomeTown NVARCHAR(50) = NULL,
+    @VerificationToken UNIQUEIDENTIFIER
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -19,8 +20,8 @@ BEGIN
     BEGIN TRANSACTION;
 
     BEGIN TRY
-        INSERT INTO Users (email, passwordHash, firstName, lastName, role)
-        VALUES (@Email, @PasswordHash, @FirstName, @LastName, @Role);
+        INSERT INTO Users (email, passwordHash, firstName, lastName, role, emailVerificationToken, isEmailVerified)
+        VALUES (@Email, @PasswordHash, @FirstName, @LastName, @Role, @VerificationToken, 0);
 
         DECLARE @UserId INT = SCOPE_IDENTITY();
 

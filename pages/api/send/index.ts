@@ -1,19 +1,39 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { Resend } from "resend";
+const nodemailer = require("nodemailer");
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_PASS,
+  },
+});
 
-export default async (req: NextApiRequest, res: NextApiResponse) => {
-  const { data, error } = await resend.emails.send({
-    from: "LuxeStay <onboarding@resend.dev>",
-    to: ["dewminaudayashan@gmail.com"],
-    subject: "Hello world",
-    react: `<p>Hello world</p>`,
-  });
-
-  if (error) {
-    return res.status(400).json(error);
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
-  res.status(200).json(data);
-};
+  const { to, subject, text } = req.body;
+
+  if (!to || !subject || !text) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  try {
+    const info = await transporter.sendMail({
+      from: `"LuxeStay" <${process.env.GMAIL_USER}>`,
+      to,
+      subject,
+      text,
+    });
+
+    res.status(200).json({ message: "Email sent", messageId: info.messageId });
+  } catch (error) {
+    console.error("Email sending error:", error);
+    res.status(500).json({ error: "Failed to send email", details: error });
+  }
+}

@@ -15,7 +15,7 @@ interface AuthContextType {
   hotelUser: HotelUser | null;
   login: (
     user: User,
-    token: string,
+    token?: string,
     options?: { customer?: Customer; agency?: Agency; hotelUser?: HotelUser }
   ) => void;
   logout: () => void;
@@ -34,10 +34,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = (
     user: User,
-    token: string,
+    token?: string,
     options?: { customer?: Customer; agency?: Agency; hotelUser?: HotelUser }
   ) => {
-    localStorage.setItem("authToken", token);
+    if (token) localStorage.setItem("authToken", token);
     localStorage.setItem("authUser", JSON.stringify(user));
     if (options?.customer)
       localStorage.setItem("authCustomer", JSON.stringify(options.customer));
@@ -45,8 +45,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       localStorage.setItem("authAgency", JSON.stringify(options.agency));
     if (options?.hotelUser)
       localStorage.setItem("authHotelUser", JSON.stringify(options.hotelUser));
-
-    setToken(token);
+    if (token) setToken(token);
     setUser(user);
     setCustomer(options?.customer || null);
     setAgency(options?.agency || null);
