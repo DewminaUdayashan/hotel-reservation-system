@@ -31,6 +31,6 @@ export const useRevenueByRoomTypeReport = ({
       );
       return response.data;
     },
-    enabled: !!dateRange && !!dateRange,
+    enabled: !!dateRange,
   });
 };
