@@ -10,4 +10,10 @@ export default {
 
   adminReservations: "adminReservations",
   adminCustomers: "adminCustomers",
+
+  occupancyReport: "occupancyReport",
+  financialReport: "financialReport",
+  noShowReport: "noShowReport",
+  revenueByRoomType: "revenueByRoomType",
+  forecastReport: "forecastReport",
 };

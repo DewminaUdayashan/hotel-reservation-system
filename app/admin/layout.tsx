@@ -15,6 +15,7 @@ import {
   Users,
   ChevronDown,
   ChevronRight,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -34,6 +35,7 @@ const navItems = [
       { href: "/admin/customers", label: "Customers" },
     ],
   },
+  { href: "/admin/reports", label: "Reports", icon: FileText },
   { href: "/admin/billing", label: "Billing", icon: CreditCard },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
