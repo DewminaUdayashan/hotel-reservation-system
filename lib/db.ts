@@ -48,3 +48,25 @@ export async function executeQuery(
     throw err;
   }
 }
+export async function executeQueryForRecordSets(
+  query: string,
+  params?: { name: string; value: any }[]
+) {
+  try {
+    const pool = await getConnection();
+    const request = pool.request();
+
+    // Add parameters if provided
+    if (params && Array.isArray(params)) {
+      params.forEach((param) => {
+        request.input(param.name, param.value);
+      });
+    }
+
+    const result = await request.query(query); // or .execute() if you're calling SPs
+    return result.recordsets; // Supports multiple result sets
+  } catch (err) {
+    console.error("Error executing query: ", err);
+    throw err;
+  }
+}

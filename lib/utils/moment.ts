@@ -1,5 +1,9 @@
 const moment = require("moment");
 
+export const toDate = (date: string): Date => {
+  return moment(date).toDate();
+};
+
 export const today = () => moment().date();
 
 export const isBetween = (start: Date, end: Date, date: Date): boolean => {
