@@ -296,6 +296,18 @@ export default function ReportsPage() {
           },
         });
       } else if (activeReport === "financial" && financialData) {
+        const totalRevenue = financialData.summary.totalRevenue ?? 0;
+        const totalRoomRevenue = financialData.summary.totalRoomRevenue ?? 0;
+        const totalServiceRevenue =
+          financialData.summary.totalServiceRevenue ?? 0;
+        const averageRevenue = financialData.summary.averageRevenue ?? 0;
+
+        const roomRevenuePercentage =
+          (totalRoomRevenue / totalRevenue) * 100 || 0;
+        const serviceRevenuePercentage =
+          (financialData.summary.totalServiceRevenue /
+            financialData.summary.totalRevenue) *
+            100 || 0;
         // Summary section
         doc.setFontSize(12);
         doc.setFont("helvetica", "bold");
@@ -303,23 +315,19 @@ export default function ReportsPage() {
 
         doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
+        doc.text(`Total Revenue: $${totalRevenue.toLocaleString()}`, 14, 73);
         doc.text(
-          `Total Revenue: $${financialData.summary.totalRevenue.toLocaleString()}`,
-          14,
-          73
-        );
-        doc.text(
-          `Room Revenue: $${financialData.summary.totalRoomRevenue.toLocaleString()} (${((financialData.summary.totalRoomRevenue / financialData.summary.totalRevenue) * 100).toFixed(2)}%)`,
+          `Room Revenue: $${totalRoomRevenue.toLocaleString()} (${roomRevenuePercentage.toFixed(2)}%)`,
           14,
           79
         );
         doc.text(
-          `Service Revenue: $${financialData.summary.totalServiceRevenue.toLocaleString()} (${((financialData.summary.totalServiceRevenue / financialData.summary.totalRevenue) * 100).toFixed(2)}%)`,
+          `Service Revenue: $${totalServiceRevenue.toLocaleString()} (${serviceRevenuePercentage.toFixed(2)}%)`,
           14,
           85
         );
         doc.text(
-          `Average Daily Revenue: $${(financialData.summary.averageRevenue ?? 0).toFixed(2)}`,
+          `Average Daily Revenue: $${averageRevenue.toFixed(2)}`,
           14,
           91
         );
