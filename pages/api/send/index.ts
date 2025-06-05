@@ -28,7 +28,7 @@ export default async function handler(
       from: `"LuxeStay" <${process.env.GMAIL_USER}>`,
       to,
       subject,
-      text,
+      html: text,
     });
 
     res.status(200).json({ message: "Email sent", messageId: info.messageId });
