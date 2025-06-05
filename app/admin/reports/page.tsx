@@ -11,7 +11,6 @@ import {
   endOfMonth,
   startOfWeek,
   endOfWeek,
-  toDate,
 } from "date-fns";
 import {
   Download,
@@ -43,14 +42,12 @@ import {
 } from "@/components/ui/select";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import type { DateRange } from "react-day-picker";
-import { useQuery } from "@tanstack/react-query";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { useOccupancyReport } from "@/hooks/reports/useOccupancyReport";
-import { today } from "@/lib/utils/moment";
 import { useFinancialReport } from "@/hooks/reports/useFinancialReport";
 import { useNoShowReport } from "@/hooks/reports/useNoShowReport";
 import { useRevenueByRoomTypeReport } from "@/hooks/reports/useRevenueByRoomTypeReport";
