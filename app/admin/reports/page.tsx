@@ -473,8 +473,9 @@ export default function ReportsPage() {
         doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
         revenueByRoomTypeData.forEach((roomType, index) => {
+          const percentage = (roomType.revenue / totalRevenue) * 100 || 0;
           doc.text(
-            `${roomType.roomTypeName}: ${((roomType.revenue / totalRevenue) * 100).toFixed(2)}%`,
+            `${roomType.roomTypeName}: ${percentage.toFixed(2)}%`,
             14,
             finalY + 35 + index * 6
           );
