@@ -70,6 +70,8 @@ export type ReserveRoomInput = {
   checkOutDate: string;
   numberOfGuests: number;
   specialRequests?: string;
+  email: string;
+  name: string;
 };
 
 export type UpdateReservationInput = {

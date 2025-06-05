@@ -147,6 +147,9 @@ export default function NewReservationForm() {
         checkInDate: values.checkInDate.toISOString(),
         checkOutDate: values.checkOutDate.toISOString(),
         numberOfGuests: Number(values.guests),
+        specialRequests: values.specialRequests || "",
+        email: user.email,
+        name: user.firstName,
       },
       {
         onSuccess: (reservationId) => {

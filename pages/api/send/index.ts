@@ -20,6 +20,7 @@ export default async function handler(
   const { to, subject, text } = req.body;
 
   if (!to || !subject || !text) {
+    console.error("Missing required fields:", { to, subject, text });
     return res.status(400).json({ error: "Missing required fields" });
   }
 
@@ -30,7 +31,7 @@ export default async function handler(
       subject,
       html: text,
     });
-
+    console.log("Email sent:", info.messageId);
     res.status(200).json({ message: "Email sent", messageId: info.messageId });
   } catch (error) {
     console.error("Email sending error:", error);
