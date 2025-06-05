@@ -585,10 +585,6 @@ export default function ReportsPage() {
       });
       return;
     }
-
-    // Create a new jsPDF instance to download
-    const doc = new jsPDF();
-
     // Get the base64 data from the data URI
     const base64 = pdfUrl.split(",")[1];
 
