@@ -54,7 +54,7 @@ import { today } from "@/lib/utils/moment";
 import { useFinancialReport } from "@/hooks/reports/useFinancialReport";
 import { useNoShowReport } from "@/hooks/reports/useNoShowReport";
 import { useRevenueByRoomTypeReport } from "@/hooks/reports/useRevenueByRoomTypeReport";
-import { useForecastReport } from "@/hooks/reports/useForecasetReport";
+import { useForecastReport } from "@/hooks/reports/useForecastReport";
 
 // Define report types
 type ReportType = "occupancy" | "financial" | "noShow" | "revenue" | "forecast";
