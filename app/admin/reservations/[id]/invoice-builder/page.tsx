@@ -415,6 +415,8 @@ export default function InvoiceBuilderPage() {
         amountPaid: amountPaid || totalAmount,
         transactionId: transactionId || undefined,
         dueDate: invoiceDetails.dueDate || undefined,
+        email: customer?.email || undefined,
+        userName: customer?.firstName,
       },
       {
         onSuccess: () => {

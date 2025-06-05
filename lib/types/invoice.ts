@@ -12,4 +12,6 @@ export type InvoicePayload = {
   amountPaid: number;
   transactionId?: string | null;
   dueDate?: string | null;
+  userName?: string;
+  email?: string;
 };

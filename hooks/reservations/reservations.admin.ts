@@ -77,9 +77,19 @@ export const useUpdateReservationStatus = (id: number) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ action }: { action: ReservationStatusAction }) => {
+    mutationFn: async ({
+      action,
+      userName,
+      email,
+    }: {
+      action: ReservationStatusAction;
+      userName?: string;
+      email?: string;
+    }) => {
       const res = await axios.post(`/admin/reservations/${id}/status`, {
         action,
+        userName: userName || null,
+        email: email || null,
       });
       return res.data;
     },
@@ -101,8 +111,12 @@ export const useCheckoutAndBilling = (id: number) => {
       amountPaid,
       transactionId,
       dueDate,
+      userName,
+      email,
     }: InvoicePayload) => {
       const response = await axios.post(`/admin/reservations/${id}/checkout`, {
+        userName: userName || null,
+        email: email || null,
         lineItems,
         paymentMethod,
         amountPaid,

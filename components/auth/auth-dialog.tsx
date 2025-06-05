@@ -221,6 +221,20 @@ export function AuthDialog({
             onOpenChange(false);
             if (onSuccessCallback) onSuccessCallback();
           },
+          onError(error: any) {
+            console.error("Registration error:", error);
+            const errorMessage =
+              error.response?.data?.error ||
+              error.message ||
+              "Registration failed.";
+
+            setErrors((prev) => ({ ...prev, email: errorMessage }));
+            toast({
+              title: "Error",
+              description: errorMessage,
+              variant: "destructive",
+            });
+          },
         }
       );
     }
@@ -238,8 +252,17 @@ export function AuthDialog({
           resetDialog();
         },
         onError: (error: any) => {
-          const errorMessage =
+          let errorMessage =
             error.response.data.error || "Failed to verify email.";
+          console.error("Email verification error:", errorMessage);
+          if (
+            errorMessage.includes(
+              "Error converting data type nvarchar to uniqueidentifier"
+            )
+          ) {
+            errorMessage =
+              "Invalid verification code. Please check your email and try again.";
+          }
           setErrors((prev) => ({ ...prev, verificationCode: errorMessage }));
           toast({
             title: "Error",

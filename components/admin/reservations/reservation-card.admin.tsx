@@ -53,9 +53,9 @@ export const ReservationCardAdmin = ({ reservation }: Props) => {
   const [isCheckInTime, setIsCheckInTime] = useState(false);
 
   const cancelReservationMutation = useCancelReservation();
-  const updateStatusMutation = useUpdateReservationStatus(reservation.id);
 
   const { data: user } = useUserById(reservation?.customerId);
+  const updateStatusMutation = useUpdateReservationStatus(reservation.id);
 
   const canCheckIn = (checkIn: Date) => {
     return new Date() >= new Date(checkIn);
@@ -129,7 +129,7 @@ export const ReservationCardAdmin = ({ reservation }: Props) => {
     }
 
     updateStatusMutation.mutate(
-      { action },
+      { action, userName: user?.firstName, email: user?.email },
       {
         onSuccess: () => {
           toast({
