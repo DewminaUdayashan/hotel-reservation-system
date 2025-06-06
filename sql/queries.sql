@@ -172,14 +172,6 @@ CREATE TABLE ReservationPayments (
 ALTER TABLE ReservationPayments
 ADD bankName NVARCHAR(255) NULL;
 
-CREATE TABLE AssignedRooms (
-    id INT IDENTITY(1,1) PRIMARY KEY,
-    reservationId INT NOT NULL,
-    roomId INT NOT NULL,
-    assignedAt DATETIME NOT NULL DEFAULT GETDATE(),
-    FOREIGN KEY (reservationId) REFERENCES Reservations(id) ON DELETE CASCADE,
-    FOREIGN KEY (roomId) REFERENCES Rooms(id)
-);
 
 CREATE TABLE ServiceTypes (
     id INT IDENTITY(1,1) PRIMARY KEY,

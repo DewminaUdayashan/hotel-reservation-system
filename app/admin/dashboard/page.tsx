@@ -1,7 +1,8 @@
+"use client";
+
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -30,12 +31,30 @@ import { useRoomFilterStore } from "@/lib/stores/useRoomFilterStore";
 import { useUserReservations } from "@/hooks/reservations/reservations";
 import { useAllRooms } from "@/hooks/rooms/rooms";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { Settings } from "lucide-react";
+import { useDashboardStats } from "@/hooks/reports/useDashboardStats";
+import { useMemo } from "react";
 
 export default function DashboardPage() {
   const filters = useRoomFilterStore((state) => state.filters);
+
+  const todayDate = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const { data: stats } = useDashboardStats(todayDate);
+
+  const occupancyRateToday = stats?.occupancyRateToday || 0;
+  const occupancyRateFromYesterday =
+    occupancyRateToday - (stats?.occupancyRateYesterday || 0);
+
+  const revenueToday = stats?.revenueToday || 0;
+  const revenueFromYesterday = revenueToday - (stats?.revenueYesterday || 0);
+
+  const availableRooms = stats?.availableRooms || 0;
+  const totalRooms = stats?.totalRooms || 0;
+
+  const occupiedRooms = totalRooms - availableRooms;
+  const todayCheckIns = stats?.todayCheckIns || 0;
+  const todayCheckOuts = stats?.todayCheckOuts || 0;
 
   const { data: reservations } = useUserReservations();
 
@@ -48,38 +67,6 @@ export default function DashboardPage() {
     minPrice: filters.minPrice,
   });
 
-  const { data: stats } = useQuery({
-    queryKey: ["stats"],
-    queryFn: () => {
-      // This would be an API call in a real application
-      return {
-        occupancyRate: 75,
-        availableRooms: 12,
-        reservedRooms: 8,
-        occupiedRooms: 28,
-        todayCheckIns: 5,
-        todayCheckOuts: 3,
-        revenue: {
-          today: 1250,
-          thisWeek: 8750,
-          thisMonth: 32500,
-        },
-      };
-    },
-    initialData: {
-      occupancyRate: 0,
-      availableRooms: 0,
-      reservedRooms: 0,
-      occupiedRooms: 0,
-      todayCheckIns: 0,
-      todayCheckOuts: 0,
-      revenue: {
-        today: 0,
-        thisWeek: 0,
-        thisMonth: 0,
-      },
-    },
-  });
   return (
     <main className="flex-1 overflow-auto p-4 md:p-6">
       <div className="flex flex-col gap-4 md:gap-8">
@@ -97,7 +84,6 @@ export default function DashboardPage() {
                 <SelectItem value="month">This Month</SelectItem>
               </SelectContent>
             </Select>
-            <Button>Generate Report</Button>
           </div>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -120,9 +106,9 @@ export default function DashboardPage() {
               </svg>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.occupancyRate}%</div>
+              <div className="text-2xl font-bold">{occupancyRateToday}%</div>
               <p className="text-xs text-muted-foreground">
-                +2.5% from last week
+                {occupancyRateFromYesterday.toFixed(2)}% from yesterday
               </p>
             </CardContent>
           </Card>
@@ -146,10 +132,10 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                ${stats.revenue.today.toLocaleString()}
+                ${revenueToday.toFixed(2)}
               </div>
               <p className="text-xs text-muted-foreground">
-                +5.1% from yesterday
+                {revenueFromYesterday}% from yesterday
               </p>
             </CardContent>
           </Card>
@@ -174,13 +160,9 @@ export default function DashboardPage() {
               </svg>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.availableRooms}</div>
+              <div className="text-2xl font-bold">{availableRooms}</div>
               <p className="text-xs text-muted-foreground">
-                {stats.availableRooms} out of{" "}
-                {stats.availableRooms +
-                  stats.occupiedRooms +
-                  stats.reservedRooms}{" "}
-                total rooms
+                {occupiedRooms} out of {totalRooms} total rooms
               </p>
             </CardContent>
           </Card>
@@ -204,30 +186,29 @@ export default function DashboardPage() {
               </svg>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.todayCheckIns}</div>
+              <div className="text-2xl font-bold">{todayCheckIns}</div>
               <p className="text-xs text-muted-foreground">
-                {stats.todayCheckOuts} check-outs scheduled
+                {todayCheckOuts} check-outs scheduled
               </p>
             </CardContent>
           </Card>
         </div>
         <Tabs defaultValue="reservations">
-          <TabsList className="grid w-full grid-cols-3 md:w-auto">
+          <TabsList className="grid w-full grid-cols-2 md:w-auto">
             <TabsTrigger value="reservations">Reservations</TabsTrigger>
             <TabsTrigger value="rooms">Rooms</TabsTrigger>
-            <TabsTrigger value="reports">Reports</TabsTrigger>
           </TabsList>
           <TabsContent value="reservations" className="border-none p-0 pt-4">
             <Card>
               <CardHeader className="flex flex-row items-center">
                 <CardTitle>Recent Reservations</CardTitle>
-                <div className="ml-auto flex items-center gap-2">
+                {/* <div className="ml-auto flex items-center gap-2">
                   <Button variant="outline" size="sm">
                     <Calendar className="mr-2 h-4 w-4" />
                     Filter
                   </Button>
                   <Button size="sm">New Reservation</Button>
-                </div>
+                </div> */}
               </CardHeader>
               <CardContent>
                 <Table>
@@ -305,7 +286,7 @@ export default function DashboardPage() {
                       <SelectItem value="maintenance">Maintenance</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button size="sm">Add Room</Button>
+                  {/* <Button size="sm">Add Room</Button> */}
                 </div>
               </CardHeader>
               <CardContent>
@@ -352,129 +333,6 @@ export default function DashboardPage() {
                   </Button>
                 </div>
               </CardFooter>
-            </Card>
-          </TabsContent>
-          <TabsContent value="reports" className="border-none p-0 pt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Reports</CardTitle>
-                <CardDescription>
-                  Generate and view reports for hotel operations and financial
-                  performance.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-6">
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium">
-                        Occupancy Report
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-xs text-muted-foreground">
-                        View current and historical occupancy rates.
-                      </p>
-                    </CardContent>
-                    <CardFooter>
-                      <Button variant="outline" size="sm" className="w-full">
-                        Generate
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium">
-                        Revenue Report
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-xs text-muted-foreground">
-                        Analyze revenue by room type, date range, and more.
-                      </p>
-                    </CardContent>
-                    <CardFooter>
-                      <Button variant="outline" size="sm" className="w-full">
-                        Generate
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium">
-                        No-Show Report
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-xs text-muted-foreground">
-                        Track no-show reservations and associated revenue.
-                      </p>
-                    </CardContent>
-                    <CardFooter>
-                      <Button variant="outline" size="sm" className="w-full">
-                        Generate
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                </div>
-                <div>
-                  <h3 className="mb-4 text-lg font-medium">
-                    Scheduled Reports
-                  </h3>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Report Name</TableHead>
-                        <TableHead>Frequency</TableHead>
-                        <TableHead>Last Generated</TableHead>
-                        <TableHead>Recipients</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell className="font-medium">
-                          Daily Occupancy
-                        </TableCell>
-                        <TableCell>Daily (7 PM)</TableCell>
-                        <TableCell>Today, 7:00 PM</TableCell>
-                        <TableCell>Manager, Front Desk</TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="sm">
-                            View
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-medium">
-                          Weekly Revenue
-                        </TableCell>
-                        <TableCell>Weekly (Monday)</TableCell>
-                        <TableCell>May 27, 2023</TableCell>
-                        <TableCell>Manager, Finance</TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="sm">
-                            View
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-medium">
-                          Monthly Performance
-                        </TableCell>
-                        <TableCell>Monthly (1st)</TableCell>
-                        <TableCell>June 1, 2023</TableCell>
-                        <TableCell>Management Team</TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="sm">
-                            View
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
