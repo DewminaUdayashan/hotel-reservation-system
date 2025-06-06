@@ -17,8 +17,12 @@ BEGIN
         r.numberOfGuests AS guests,
         r.status,
 
-        -- Payment details from Invoice
-        ISNULL(i.status, 'unpaid') AS paymentStatus,
+        -- Return 'paid' if invoice exists, otherwise 'unpaid'
+        CASE 
+            WHEN i.id IS NOT NULL THEN 'paid'
+            ELSE 'unpaid'
+        END AS paymentStatus,
+
         ISNULL(i.paymentMethod, 'cash') AS paymentMethod,
         ISNULL(i.totalAmount, 0.00) AS totalAmount,
 
