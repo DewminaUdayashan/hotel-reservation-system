@@ -21,30 +21,16 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { ProtectedRoute } from "@/components/protected-route";
-
-// Updated navItems with submenu
-const navItems = [
-  { href: "/admin", label: "Dashboard", icon: BarChart3 },
-  { href: "/admin/reservations", label: "Reservations", icon: Calendar },
-  { href: "/admin/rooms", label: "Rooms", icon: Building2 },
-  {
-    label: "People",
-    icon: Users,
-    children: [
-      { href: "/admin/users", label: "Users" },
-      { href: "/admin/customers", label: "Customers" },
-    ],
-  },
-  { href: "/admin/reports", label: "Reports", icon: FileText },
-  { href: "/admin/billing", label: "Billing", icon: CreditCard },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
-];
+import { useAuth } from "@/hooks/auth/useAuth";
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === "admin";
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [openSubmenus, setOpenSubmenus] = useState<{
     [label: string]: boolean;
@@ -55,6 +41,29 @@ export default function AdminLayout({
     setOpenSubmenus((prev) => ({ ...prev, [label]: !prev[label] }));
   };
 
+  const navItems = [
+    { href: "/admin", label: "Dashboard", icon: BarChart3 },
+    { href: "/admin/reservations", label: "Reservations", icon: Calendar },
+    { href: "/admin/rooms", label: "Rooms", icon: Building2 },
+    ...(isSuperAdmin
+      ? [
+          {
+            label: "People",
+            icon: Users,
+            children: [
+              { href: "/admin/users", label: "Users" },
+              { href: "/admin/customers", label: "Customers" },
+            ],
+          },
+          { href: "/admin/reports", label: "Reports", icon: FileText },
+          { href: "/admin/billing", label: "Billing", icon: CreditCard },
+        ]
+      : []),
+    ...(!isSuperAdmin
+      ? [{ href: "/admin/customers", label: "Customers", icon: Users }]
+      : []),
+    { href: "/admin/settings", label: "Settings", icon: Settings },
+  ];
   const renderNavItems = (isMobile = false) => (
     <nav className="grid gap-2 p-4">
       {navItems.map((item) =>
