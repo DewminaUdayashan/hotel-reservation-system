@@ -1,6 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { executeQuery } from "@/lib/db";
-import { get } from "http";
 import { getUserFromToken } from "@/lib/auth";
 
 export default async function handler(

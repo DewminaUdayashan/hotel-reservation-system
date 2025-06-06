@@ -2,6 +2,7 @@ import { NextApiRequest } from "next";
 import { JWT_SECRET } from "./env";
 import { jwtDecode } from "jwt-decode";
 import { NextRequest } from "next/server";
+import { executeQuery } from "./db";
 var jwt = require("jsonwebtoken");
 
 export function verifyToken(req: NextApiRequest) {
