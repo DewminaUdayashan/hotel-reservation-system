@@ -22,7 +22,11 @@ BEGIN
         R.checkOutDate AS checkOut,
         R.numberOfGuests AS guests,
         R.status,
-        ISNULL(I.status, 'unpaid') AS paymentStatus,
+        -- Return 'paid' if invoice exists, otherwise 'unpaid'
+        CASE 
+            WHEN i.id IS NOT NULL THEN 'paid'
+            ELSE 'unpaid'
+        END AS paymentStatus,
         I.paymentMethod,
         ISNULL(I.totalAmount, DATEDIFF(DAY, R.checkInDate, R.checkOutDate) * RT.price) AS totalAmount,
         R.specialRequests,
