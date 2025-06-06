@@ -7,7 +7,7 @@ CREATE OR ALTER PROCEDURE GetAllReservationsForAdmin
     @fromDate DATE = NULL,
     @toDate DATE = NULL,
     @orderBy NVARCHAR(50) = 'checkInDate',
-    @orderDir NVARCHAR(4) = 'ASC'
+    @orderDir NVARCHAR(4) = 'DESC'
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -22,6 +22,9 @@ BEGIN
         R.checkOutDate AS checkOut,
         R.numberOfGuests AS guests,
         R.status,
+        U.firstName AS firstName,
+        U.lastName AS lastName,
+        U.email AS email,
         -- Return 'paid' if invoice exists, otherwise 'unpaid'
         CASE 
             WHEN i.id IS NOT NULL THEN 'paid'

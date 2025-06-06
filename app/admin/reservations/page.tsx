@@ -32,7 +32,7 @@ export default function AdminReservationListPage() {
     status,
     hotelId,
     orderBy: "checkInDate",
-    orderDir: "ASC",
+    orderDir: "DESC",
   });
 
   const reservations: ReservationWithAdditionalDetails[] = data?.data || [];

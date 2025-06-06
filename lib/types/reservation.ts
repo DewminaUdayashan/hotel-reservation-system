@@ -43,14 +43,14 @@ export type ReservationDetails = ReservationWithAdditionalDetails & {
   firstName: string;
   lastName: string;
   email: string;
-  phone: string;
+  phone?: string;
 
   // Credit card details
   card?: CardDetails;
 };
 
 export type AdminReservationResponse = {
-  data: ReservationWithAdditionalDetails[];
+  data: ReservationDetails[];
   totalCount: number;
 };
 

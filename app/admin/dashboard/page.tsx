@@ -34,9 +34,13 @@ import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { Settings } from "lucide-react";
 import { useDashboardStats } from "@/hooks/reports/useDashboardStats";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useAdminReservations } from "@/hooks/reservations/reservations.admin";
 
 export default function DashboardPage() {
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
+
   const filters = useRoomFilterStore((state) => state.filters);
 
   const todayDate = useMemo(() => new Date().toISOString().split("T")[0], []);
@@ -56,16 +60,15 @@ export default function DashboardPage() {
   const todayCheckIns = stats?.todayCheckIns || 0;
   const todayCheckOuts = stats?.todayCheckOuts || 0;
 
-  const { data: reservations } = useUserReservations();
+  const { data: reservationData, isLoading: isReservationsLoading } =
+    useAdminReservations({
+      page,
+      pageSize,
+      orderBy: "checkInDate",
+      orderDir: "DESC",
+    });
 
-  const { data: rooms } = useAllRooms({
-    capacity: filters.capacity,
-    type: filters.roomType?.id,
-    checkIn: filters.checkIn?.toISOString(),
-    checkOut: filters.checkOut?.toISOString(),
-    maxPrice: filters.maxPrice,
-    minPrice: filters.minPrice,
-  });
+  const { data: rooms } = useAllRooms({});
 
   return (
     <main className="flex-1 overflow-auto p-4 md:p-6">
@@ -212,12 +215,12 @@ export default function DashboardPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {reservations?.map((reservation) => (
+                    {reservationData?.data?.map((reservation) => (
                       <TableRow key={reservation.id}>
                         <TableCell className="font-medium">
                           {reservation.id}
                         </TableCell>
-                        <TableCell>{"reservation.customerName"}</TableCell>
+                        <TableCell>{reservation.firstName}</TableCell>
                         <TableCell>{reservation.roomType}</TableCell>
                         <TableCell>
                           {format(reservation.checkIn, "MMM dd, yyyy")}
@@ -243,13 +246,29 @@ export default function DashboardPage() {
               </CardContent>
               <CardFooter className="flex items-center justify-between">
                 <div className="text-xs text-muted-foreground">
-                  Showing <strong>5</strong> of <strong>25</strong> reservations
+                  Showing <strong>{reservationData?.data?.length || 0}</strong>{" "}
+                  of <strong>{reservationData?.totalCount || 0}</strong>{" "}
+                  reservations
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" disabled>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page === 1}
+                    onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                  >
                     Previous
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={
+                      reservationData?.totalCount
+                        ? page * pageSize >= reservationData.totalCount
+                        : true
+                    }
+                    onClick={() => setPage((p) => p + 1)}
+                  >
                     Next
                   </Button>
                 </div>
@@ -281,9 +300,9 @@ export default function DashboardPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Room Number</TableHead>
-                      <TableHead>Type</TableHead>
+                      <TableHead>Name</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Current Guest</TableHead>
+                      <TableHead>Capacity</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -291,9 +310,11 @@ export default function DashboardPage() {
                     {rooms?.map((room) => (
                       <TableRow key={room.id}>
                         <TableCell className="font-medium">{room.id}</TableCell>
-                        <TableCell>{room.type}</TableCell>
+                        <TableCell>{room.name}</TableCell>
                         <TableCell>
-                          <RoomStatusBadge status={room.status} />
+                          <RoomStatusBadge
+                            status={room.isReserved ? "occupied" : room.status}
+                          />
                         </TableCell>
                         <TableCell>{room.capacity || "—"}</TableCell>
                         <TableCell className="text-right">
