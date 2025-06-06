@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/auth/useAuth";
-import { redirect, useRouter } from "next/navigation";
+import { redirect } from "next/navigation";
 import { useEffect } from "react";
 
 interface Props {
@@ -9,16 +9,16 @@ interface Props {
 
 export const ProtectedRoute = ({ children, requireAdmin }: Props) => {
   const { user, isAdmin } = useAuth();
-  const router = useRouter();
 
   useEffect(() => {
-    if (!user && !isAdmin) return;
+    if (!user && !isAdmin) redirect("/");
+
     if (requireAdmin && !isAdmin) {
       redirect("/");
     }
   }, [user]);
 
-  if (!user) return null;
+  if (!user) redirect("/");
 
   return <>{children}</>;
 };
