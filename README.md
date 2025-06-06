@@ -127,6 +127,12 @@ Or:
 - All major actions (e.g., reservation updates, invoicing) are handled via **stored procedures**.
 - Stored procedures include: `CreateInvoiceAndCheckout`, `GetAllReservationsForAdmin`, `GetReservationById`, etc.
 
+### 🗄️ Database Setup
+
+1. Open SQL Server Management Studio (SSMS).
+2. Open the script at `/sql/hotel-db.sql`.
+3. Run the script to create and populate the database.
+
 ---
 
 ## ✅ License
