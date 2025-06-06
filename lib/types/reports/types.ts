@@ -67,3 +67,14 @@ export type ForecastResponse = {
   data: ForecastOccupancy[];
   notEnoughData: boolean;
 };
+
+export type DashboardStats = {
+  occupancyRateToday: number;
+  occupancyRateYesterday: number;
+  revenueToday: number;
+  revenueYesterday: number;
+  availableRooms: number;
+  totalRooms: number;
+  todayCheckIns: number;
+  todayCheckOuts: number;
+};

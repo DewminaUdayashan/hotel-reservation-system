@@ -11,12 +11,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAdminReservations } from "@/hooks/reservations/reservations.admin";
-import { ReservationCard } from "@/components/reservations/reservation-card";
 import { ReservationWithAdditionalDetails } from "@/lib/types/reservation";
 import { useAllHotels } from "@/hooks/hotels/hotels";
 import { ReservationCardAdmin } from "@/components/admin/reservations/reservation-card.admin";
+import { useAuth } from "@/hooks/auth/useAuth";
 
 export default function AdminReservationListPage() {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === "admin";
+
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string | undefined>(undefined);
@@ -29,7 +32,7 @@ export default function AdminReservationListPage() {
     status,
     hotelId,
     orderBy: "checkInDate",
-    orderDir: "ASC",
+    orderDir: "DESC",
   });
 
   const reservations: ReservationWithAdditionalDetails[] = data?.data || [];
@@ -82,22 +85,24 @@ export default function AdminReservationListPage() {
             </SelectContent>
           </Select>
 
-          <Select
-            value={hotelId?.toString() || "any"}
-            onValueChange={handleHotelChange}
-          >
-            <SelectTrigger className="w-[220px]">
-              <SelectValue placeholder="Filter by hotel" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="any">All Hotels</SelectItem>
-              {hotels?.map((hotel) => (
-                <SelectItem key={hotel.id} value={hotel.id.toString()}>
-                  {hotel.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {isSuperAdmin && (
+            <Select
+              value={hotelId?.toString() || "any"}
+              onValueChange={handleHotelChange}
+            >
+              <SelectTrigger className="w-[220px]">
+                <SelectValue placeholder="Filter by hotel" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="any">All Hotels</SelectItem>
+                {hotels?.map((hotel) => (
+                  <SelectItem key={hotel.id} value={hotel.id.toString()}>
+                    {hotel.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
 

@@ -16,4 +16,5 @@ export default {
   noShowReport: "noShowReport",
   revenueByRoomType: "revenueByRoomType",
   forecastReport: "forecastReport",
+  dashboardStats: "dashboardStats",
 };
