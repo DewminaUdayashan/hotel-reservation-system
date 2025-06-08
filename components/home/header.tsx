@@ -6,7 +6,6 @@ import { Hotel, LogOutIcon, User } from "lucide-react";
 import { AuthDialog } from "../auth/auth-dialog";
 import { useState } from "react";
 import { useAuth } from "@/hooks/auth/useAuth";
-import { toast } from "@/hooks/use-toast";
 import { AdminOnly } from "../admin-only";
 import { UserOnly } from "../user-only";
 
