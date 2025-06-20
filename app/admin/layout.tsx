@@ -16,6 +16,7 @@ import {
   ChevronDown,
   ChevronRight,
   FileText,
+  Building,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -44,6 +45,7 @@ export default function AdminLayout({
   const navItems = [
     { href: "/admin", label: "Dashboard", icon: BarChart3 },
     { href: "/admin/reservations", label: "Reservations", icon: Calendar },
+    { href: "/admin/hotels", label: "Hotels", icon: Building },
     { href: "/admin/rooms", label: "Rooms", icon: Building2 },
     ...(isSuperAdmin
       ? [
