@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { executeQuery } from "@/lib/db";
+const sql = require("mssql");
 
 export default async function handler(
   req: NextApiRequest,
@@ -39,14 +40,28 @@ export default async function handler(
 
   try {
     const result = await executeQuery(
-      "EXEC CreateInvoiceAndCheckout @ReservationId, @LineItems, @PaymentMethod, @DueDate, @AmountPaid, @TransactionId",
+      `EXEC CreateInvoiceAndCheckout 
+  @ReservationId = @ReservationId, 
+  @LineItems = @LineItems, 
+  @PaymentMethod = @PaymentMethod, 
+  @DueDate = @DueDate, 
+  @AmountPaid = @AmountPaid, 
+  @TransactionId = @TransactionId`,
       [
-        { name: "ReservationId", value: id },
-        { name: "LineItems", value: JSON.stringify(lineItems) },
-        { name: "PaymentMethod", value: paymentMethod },
-        { name: "DueDate", value: dueDate || null },
-        { name: "AmountPaid", value: amountPaid },
-        { name: "TransactionId", value: transactionId || null },
+        { name: "ReservationId", value: id, type: sql.Int },
+        {
+          name: "LineItems",
+          value: JSON.stringify(lineItems),
+          type: sql.NVarChar,
+        },
+        { name: "PaymentMethod", value: paymentMethod, type: sql.NVarChar },
+        { name: "DueDate", value: dueDate || null, type: sql.DateTime },
+        { name: "AmountPaid", value: amountPaid, type: sql.Decimal(10, 2) },
+        {
+          name: "TransactionId",
+          value: transactionId || null,
+          type: sql.NVarChar,
+        },
       ]
     );
 

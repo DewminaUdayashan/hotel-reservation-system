@@ -28,16 +28,19 @@ export async function getConnection() {
  */
 export async function executeQuery(
   query: string,
-  params?: { name: string; value: any }[]
+  params?: { name: string; value: any; type?: any }[]
 ) {
   try {
     const pool = await getConnection();
     const request = pool.request();
 
-    // Add parameters if provided
     if (params && Array.isArray(params)) {
       params.forEach((param) => {
-        request.input(param.name, param.value);
+        if (param.type) {
+          request.input(param.name, param.type, param.value);
+        } else {
+          request.input(param.name, param.value); // fallback
+        }
       });
     }
 
@@ -48,6 +51,7 @@ export async function executeQuery(
     throw err;
   }
 }
+
 export async function executeQueryForRecordSets(
   query: string,
   params?: { name: string; value: any }[]

@@ -17,4 +17,6 @@ export default {
   revenueByRoomType: "revenueByRoomType",
   forecastReport: "forecastReport",
   dashboardStats: "dashboardStats",
+
+  hotels: "hotels",
 };
