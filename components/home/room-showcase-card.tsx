@@ -50,6 +50,8 @@ export const RoomTypeShowcaseCard = ({ room }: RoomShowcaseCardProps) => {
 
   const isUnavailable = !rooms || rooms?.length === 0;
 
+  console.log("Room Showcase Card", images);
+
   return (
     <Card
       key={room.id}
