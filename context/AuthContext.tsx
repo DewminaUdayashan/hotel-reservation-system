@@ -70,8 +70,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setCustomer(null);
     setAgency(null);
     setHotelUser(null);
-    router.push("/");
-
     toast({
       title: "Logged out",
       description: "You have been logged out successfully.",

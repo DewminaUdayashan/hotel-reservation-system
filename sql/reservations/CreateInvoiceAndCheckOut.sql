@@ -30,10 +30,10 @@ BEGIN
 
         -- Calculate total amount from JSON
         DECLARE @TotalAmount DECIMAL(10, 2);
-SELECT @TotalAmount = SUM(CAST([amount] AS DECIMAL(10,2)))
+SELECT @TotalAmount = SUM(amount)
 FROM OPENJSON(@LineItems)
 WITH (
-    amount NVARCHAR(50) '$.amount'
+    amount DECIMAL(10,2) '$.amount'
 );
 
         IF @AmountPaid < @TotalAmount
@@ -57,12 +57,12 @@ INSERT INTO InvoiceLineItems (invoiceId, description, amount, serviceTypeId)
 SELECT
     @InvoiceId,
     description,
-    TRY_CAST(amount AS DECIMAL(10,2)),
+    amount,
     serviceTypeId
 FROM OPENJSON(@LineItems)
 WITH (
     description NVARCHAR(255) '$.description',
-    amount NVARCHAR(50) '$.amount',
+    amount DECIMAL(10,2) '$.amount',
     serviceTypeId INT '$.serviceTypeId'
 );
 
