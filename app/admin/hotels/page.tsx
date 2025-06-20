@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { z } from "zod";
 import {
   Dialog,
   DialogTrigger,
@@ -20,6 +21,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useDropzone } from "react-dropzone";
+import { toast } from "sonner";
+import { useAdminCreateHotel } from "@/hooks/hotels/hotels.adamin";
+import { useAllHotels } from "@/hooks/hotels/hotels";
 
 export type Hotel = {
   id: number;
@@ -31,31 +35,15 @@ export type Hotel = {
   createdAt: string;
 };
 
-const initialHotels: Hotel[] = [
-  {
-    id: 1,
-    name: "Luxe Galle Paradies",
-    location: "Galle, Sri Lanka",
-    description: "A seaside luxury resort with serene ocean views.",
-    mapUrl: "https://maps.example.com/galle-paradies",
-    logoUrl: "",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 2,
-    name: "Luxe Hambanthota Bay",
-    location: "Hambanthota, Sri Lanka",
-    description: "Elegant comfort at the southern coast.",
-    mapUrl: "",
-    logoUrl: "",
-    createdAt: new Date().toISOString(),
-  },
-];
+const hotelSchema = z.object({
+  name: z.string().min(1, "Hotel name is required"),
+  location: z.string().min(1, "Location is required"),
+  description: z.string().min(1, "Description is required"),
+  mapUrl: z.string().url("Invalid URL").optional().or(z.literal("")),
+});
 
 export default function AdminHotelsPage() {
-  const [hotels, setHotels] = useState<Hotel[]>(initialHotels);
   const [open, setOpen] = useState(false);
-  const [editHotelId, setEditHotelId] = useState<number | null>(null);
   const [form, setForm] = useState<Omit<Hotel, "id" | "createdAt">>({
     name: "",
     location: "",
@@ -63,8 +51,12 @@ export default function AdminHotelsPage() {
     mapUrl: "",
     logoUrl: "",
   });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+
+  const { data: hotels, refetch } = useAllHotels();
+  const { mutate: createHotel, isPending } = useAdminCreateHotel();
 
   const resetForm = () => {
     setForm({
@@ -74,7 +66,7 @@ export default function AdminHotelsPage() {
       mapUrl: "",
       logoUrl: "",
     });
-    setEditHotelId(null);
+    setFormErrors({});
     setLogoFile(null);
     setLogoPreview(null);
   };
@@ -94,45 +86,44 @@ export default function AdminHotelsPage() {
   });
 
   const handleSaveHotel = () => {
-    const newLogoUrl = logoPreview || "";
+    const result = hotelSchema.safeParse({ ...form });
 
-    if (editHotelId !== null) {
-      setHotels((prev) =>
-        prev.map((hotel) =>
-          hotel.id === editHotelId
-            ? {
-                ...hotel,
-                ...form,
-                logoUrl: newLogoUrl,
-              }
-            : hotel
-        )
-      );
-    } else {
-      const newHotel: Hotel = {
-        id: hotels.length + 1,
-        ...form,
-        logoUrl: newLogoUrl,
-        createdAt: new Date().toISOString(),
-      };
-      setHotels([...hotels, newHotel]);
+    if (!result.success) {
+      const errors: Record<string, string> = {};
+      result.error.errors.forEach((err) => {
+        if (err.path.length > 0) {
+          errors[err.path[0] as string] = err.message;
+        }
+      });
+      setFormErrors(errors);
+      return;
     }
 
-    resetForm();
-    setOpen(false);
-  };
+    if (!logoFile) {
+      toast.error("Please upload a logo image");
+      return;
+    }
 
-  const handleEditClick = (hotel: Hotel) => {
-    setForm({
-      name: hotel.name,
-      location: hotel.location,
-      description: hotel.description,
-      mapUrl: hotel.mapUrl || "",
-      logoUrl: hotel.logoUrl || "",
+    const formData = new FormData();
+    formData.append("name", form.name);
+    formData.append("location", form.location);
+    formData.append("description", form.description);
+    if (form.mapUrl) formData.append("mapUrl", form.mapUrl);
+    formData.append("logoUrl", form.logoUrl || ""); // optional fallback
+    formData.append("images", logoFile); // single image
+    formData.append("captions", "Hotel logo"); // optional caption
+
+    createHotel(formData, {
+      onSuccess: () => {
+        toast.success("Hotel created successfully!");
+        refetch();
+        setOpen(false);
+        resetForm();
+      },
+      onError: (err: any) => {
+        toast.error(err.response?.data?.error || "Failed to create hotel");
+      },
     });
-    setLogoPreview(hotel.logoUrl || null);
-    setEditHotelId(hotel.id);
-    setOpen(true);
   };
 
   return (
@@ -151,33 +142,67 @@ export default function AdminHotelsPage() {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>
-                {editHotelId ? "Edit Hotel" : "Create Hotel"}
-              </DialogTitle>
+              <DialogTitle>Create Hotel</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <Input
-                placeholder="Hotel Name"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-              />
-              <Input
-                placeholder="Location"
-                value={form.location}
-                onChange={(e) => setForm({ ...form, location: e.target.value })}
-              />
-              <Input
-                placeholder="Description"
-                value={form.description}
-                onChange={(e) =>
-                  setForm({ ...form, description: e.target.value })
-                }
-              />
-              <Input
-                placeholder="Map URL"
-                value={form.mapUrl}
-                onChange={(e) => setForm({ ...form, mapUrl: e.target.value })}
-              />
+              <div>
+                <Input
+                  placeholder="Hotel Name"
+                  value={form.name}
+                  onChange={(e) => {
+                    setForm({ ...form, name: e.target.value });
+                    setFormErrors((prev) => ({ ...prev, name: "" }));
+                  }}
+                />
+                {formErrors.name && (
+                  <p className="text-sm text-red-500">{formErrors.name}</p>
+                )}
+              </div>
+
+              <div>
+                <Input
+                  placeholder="Location"
+                  value={form.location}
+                  onChange={(e) => {
+                    setForm({ ...form, location: e.target.value });
+                    setFormErrors((prev) => ({ ...prev, location: "" }));
+                  }}
+                />
+                {formErrors.location && (
+                  <p className="text-sm text-red-500">{formErrors.location}</p>
+                )}
+              </div>
+
+              <div>
+                <Input
+                  placeholder="Description"
+                  value={form.description}
+                  onChange={(e) => {
+                    setForm({ ...form, description: e.target.value });
+                    setFormErrors((prev) => ({ ...prev, description: "" }));
+                  }}
+                />
+                {formErrors.description && (
+                  <p className="text-sm text-red-500">
+                    {formErrors.description}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <Input
+                  placeholder="Map URL"
+                  value={form.mapUrl}
+                  onChange={(e) => {
+                    setForm({ ...form, mapUrl: e.target.value });
+                    setFormErrors((prev) => ({ ...prev, mapUrl: "" }));
+                  }}
+                />
+                {formErrors.mapUrl && (
+                  <p className="text-sm text-red-500">{formErrors.mapUrl}</p>
+                )}
+              </div>
+
               <div>
                 <label className="block mb-1 text-sm font-medium text-gray-700">
                   Logo
@@ -206,8 +231,8 @@ export default function AdminHotelsPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={handleSaveHotel}>
-                {editHotelId ? "Update Hotel" : "Create Hotel"}
+              <Button onClick={handleSaveHotel} disabled={isPending}>
+                {isPending ? "Saving..." : "Create Hotel"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -224,11 +249,10 @@ export default function AdminHotelsPage() {
             <TableHead>Map URL</TableHead>
             <TableHead>Logo</TableHead>
             <TableHead>Created At</TableHead>
-            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {hotels.map((hotel) => (
+          {hotels?.map((hotel) => (
             <TableRow key={hotel.id}>
               <TableCell>{hotel.id}</TableCell>
               <TableCell>{hotel.name}</TableCell>
@@ -261,15 +285,6 @@ export default function AdminHotelsPage() {
               </TableCell>
               <TableCell className="text-sm">
                 {new Date(hotel.createdAt).toLocaleDateString()}
-              </TableCell>
-              <TableCell>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleEditClick(hotel)}
-                >
-                  Edit
-                </Button>
               </TableCell>
             </TableRow>
           ))}

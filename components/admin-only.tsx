@@ -7,7 +7,7 @@ export const AdminOnly = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
 
   useEffect(() => {
-    if (!user) {
+    if (!user || !isAdmin) {
       router.push("/");
     }
   }, [user, isAdmin]);

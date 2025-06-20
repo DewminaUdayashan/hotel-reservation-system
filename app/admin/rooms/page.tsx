@@ -26,8 +26,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useDropzone } from "react-dropzone";
+import { useAllHotels } from "@/hooks/hotels/hotels";
+import { z } from "zod";
+import { useAdminCreateRoom } from "@/hooks/rooms/rooms.admin";
+import { useAllRooms, useRoomTypes } from "@/hooks/rooms/rooms";
+import { RoomItem } from "./room-item";
 
 type Room = {
   id: number;
@@ -39,55 +45,52 @@ type Room = {
   amenities: string[];
 };
 
-const dummyHotels = [
-  { id: 1, name: "Luxe Galle Paradies" },
-  { id: 2, name: "Luxe Hambanthota Bay" },
-];
-const initialRooms: Room[] = [
-  {
-    id: 1,
-    name: "Standard Room 101",
-    status: "available",
-    hotel: "Luxe Galle Paradies",
-    images: [],
-    description: "",
-    amenities: [],
-  },
-  {
-    id: 2,
-    name: "Deluxe Room 202",
-    status: "maintenance",
-    hotel: "Luxe Hambanthota Bay",
-    images: [],
-    description: "",
-    amenities: [],
-  },
-];
+const roomSchema = z.object({
+  name: z.string().min(1, "Room name is required"),
+  description: z.string().optional(),
+  amenities: z.string().optional(),
+  status: z.enum(["available", "maintenance"]),
+  hotelId: z.string().min(1, "Hotel is required"),
+  roomTypeId: z.string().min(1, "Room type is required"),
+});
+
+type RoomFormValues = z.infer<typeof roomSchema>;
+
 export default function AdminRoomsPage() {
-  const [rooms, setRooms] = useState(initialRooms);
   const [open, setOpen] = useState(false);
   const [editRoomId, setEditRoomId] = useState<number | null>(null);
-  const [roomForm, setRoomForm] = useState({
-    name: "",
-    status: "available",
-    hotelId: "",
-    description: "",
-    amenities: "",
-  });
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
-  const resetForm = () => {
-    setRoomForm({
+  const { data: rooms, refetch } = useAllRooms({});
+  const { data: hotels } = useAllHotels();
+  const { mutate: createRoom, isPending } = useAdminCreateRoom();
+  const { data: roomTypes } = useRoomTypes();
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    getValues,
+    formState: { errors },
+  } = useForm<RoomFormValues>({
+    resolver: zodResolver(roomSchema),
+    defaultValues: {
       name: "",
       status: "available",
       hotelId: "",
       description: "",
       amenities: "",
-    });
-    setEditRoomId(null);
+      roomTypeId: "",
+    },
+  });
+
+  const resetForm = () => {
+    reset();
     setImageFiles([]);
     setImagePreviews([]);
+    setEditRoomId(null);
   };
 
   const onDrop = (acceptedFiles: File[]) => {
@@ -102,63 +105,57 @@ export default function AdminRoomsPage() {
     multiple: true,
   });
 
-  const handleSaveRoom = () => {
-    const hotelName =
-      dummyHotels.find((h) => h.id === Number(roomForm.hotelId))?.name ||
-      "Unknown Hotel";
+  const onSubmit = (data: RoomFormValues) => {
+    const formData = new FormData();
+    formData.append("name", data.name);
+    formData.append("description", data.description || "");
+    formData.append("status", data.status);
+    formData.append("hotelId", data.hotelId);
+    formData.append("roomTypeId", data.roomTypeId);
 
-    const amenitiesArray = roomForm.amenities
-      .split(",")
+    const amenitiesArray = data.amenities
+      ?.split(",")
       .map((a) => a.trim())
-      .filter((a) => a.length > 0);
+      .filter(Boolean);
 
-    if (editRoomId !== null) {
-      setRooms((prev) =>
-        prev.map((room) =>
-          room.id === editRoomId
-            ? {
-                ...room,
-                name: roomForm.name,
-                status: roomForm.status,
-                hotel: hotelName,
-                images: imagePreviews.length > 0 ? imagePreviews : room.images,
-                description: roomForm.description,
-                amenities: amenitiesArray,
-              }
-            : room
-        )
-      );
-    } else {
-      const newRoom = {
-        id: rooms.length + 1,
-        name: roomForm.name,
-        status: roomForm.status,
-        hotel: hotelName,
-        images: imagePreviews,
-        description: roomForm.description,
-        amenities: amenitiesArray,
-      };
-      setRooms([...rooms, newRoom]);
-    }
+    amenitiesArray?.forEach((amenity) =>
+      formData.append("amenities[]", amenity)
+    );
+    imageFiles.forEach((file) => formData.append("images", file));
 
-    resetForm();
-    setOpen(false);
+    createRoom(formData, {
+      onSuccess: (newRoomData) => {
+        const hotelName =
+          hotels?.find((h) => h.id === Number(data.hotelId))?.name || "Unknown";
+        const newRoom: Room = {
+          id: newRoomData.id,
+          name: data.name,
+          status: data.status,
+          hotel: hotelName,
+          images: imagePreviews,
+          description: data.description || "",
+          amenities: amenitiesArray || [],
+        };
+        setOpen(false);
+        resetForm();
+        refetch();
+      },
+    });
   };
 
-  const handleEditClick = (room: (typeof initialRooms)[number]) => {
-    const hotelId =
-      dummyHotels.find((h) => h.name === room.hotel)?.id.toString() || "";
-    setRoomForm({
-      name: room.name,
-      status: room.status,
-      hotelId,
-      description: room.description || "",
-      amenities: room.amenities?.join(", ") || "",
-    });
-    setImageFiles([]);
-    setImagePreviews(room.images || []);
-    setEditRoomId(room.id);
-    setOpen(true);
+  const handleEditClick = () => {
+    // const hotelId =
+    //   hotels?.find((h) => h.name === room.hotel)?.id.toString() || "";
+    // reset({
+    //   name: room.name,
+    //   status: room.status,
+    //   hotelId,
+    //   description: room.description,
+    //   amenities: room.amenities.join(", "),
+    // });
+    // setImagePreviews(room.images || []);
+    // setEditRoomId(room.id);
+    // setOpen(true);
   };
 
   return (
@@ -181,33 +178,24 @@ export default function AdminRoomsPage() {
                 {editRoomId ? "Edit Room" : "Create New Room"}
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <Input
-                placeholder="Room Name"
-                value={roomForm.name}
-                onChange={(e) =>
-                  setRoomForm({ ...roomForm, name: e.target.value })
-                }
-              />
-              <Input
-                placeholder="Description"
-                value={roomForm.description}
-                onChange={(e) =>
-                  setRoomForm({ ...roomForm, description: e.target.value })
-                }
-              />
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <Input placeholder="Room Name" {...register("name")} />
+              {errors.name && (
+                <p className="text-sm text-red-500">{errors.name.message}</p>
+              )}
+
+              <Input placeholder="Description" {...register("description")} />
+
               <Input
                 placeholder="Amenities (comma-separated)"
-                value={roomForm.amenities}
-                onChange={(e) =>
-                  setRoomForm({ ...roomForm, amenities: e.target.value })
-                }
+                {...register("amenities")}
               />
+
               <Select
-                value={roomForm.status}
-                onValueChange={(value) =>
-                  setRoomForm({ ...roomForm, status: value })
+                onValueChange={(val) =>
+                  setValue("status", val as "available" | "maintenance")
                 }
+                defaultValue={getValues("status")}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Status" />
@@ -217,30 +205,57 @@ export default function AdminRoomsPage() {
                   <SelectItem value="maintenance">Maintenance</SelectItem>
                 </SelectContent>
               </Select>
+              {errors.status && (
+                <p className="text-sm text-red-500">{errors.status.message}</p>
+              )}
+
               <Select
-                value={roomForm.hotelId}
-                onValueChange={(value) =>
-                  setRoomForm({ ...roomForm, hotelId: value })
-                }
+                onValueChange={(val) => setValue("hotelId", val)}
+                defaultValue={getValues("hotelId")}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Assign to Hotel" />
                 </SelectTrigger>
                 <SelectContent>
-                  {dummyHotels.map((hotel) => (
+                  {hotels?.map((hotel) => (
                     <SelectItem key={hotel.id} value={hotel.id.toString()}>
                       {hotel.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {errors.hotelId && (
+                <p className="text-sm text-red-500">{errors.hotelId.message}</p>
+              )}
+
+              <Select
+                onValueChange={(val) => setValue("roomTypeId", val)}
+                defaultValue={getValues("roomTypeId")}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Room Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {roomTypes?.map((type) => (
+                    <SelectItem key={type.id} value={type.id.toString()}>
+                      {type.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.roomTypeId && (
+                <p className="text-sm text-red-500">
+                  {errors.roomTypeId.message}
+                </p>
+              )}
+
               <div>
-                <label className="block mb-1 text-sm font-medium text-gray-700">
+                <label className="block mb-1 text-sm font-medium">
                   Room Images
                 </label>
                 <div
                   {...getRootProps()}
-                  className={`border-2 border-dashed p-4 rounded-md text-center cursor-pointer transition ${
+                  className={`border-2 border-dashed p-4 rounded-md text-center cursor-pointer ${
                     isDragActive
                       ? "border-blue-400 bg-blue-50"
                       : "border-gray-300"
@@ -264,12 +279,13 @@ export default function AdminRoomsPage() {
                   )}
                 </div>
               </div>
-            </div>
-            <DialogFooter>
-              <Button onClick={handleSaveRoom}>
-                {editRoomId ? "Update Room" : "Create Room"}
-              </Button>
-            </DialogFooter>
+
+              <DialogFooter>
+                <Button type="submit" disabled={isPending}>
+                  {isPending ? "Creating..." : "Create Room"}
+                </Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
@@ -288,47 +304,12 @@ export default function AdminRoomsPage() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rooms.map((room) => (
-            <TableRow key={room.id}>
-              <TableCell>{room.id}</TableCell>
-              <TableCell>{room.name}</TableCell>
-              <TableCell>{room.status}</TableCell>
-              <TableCell>{room.hotel}</TableCell>
-              <TableCell>
-                {room.images.length > 0 ? (
-                  <div className="flex gap-2">
-                    {room.images.slice(0, 2).map((img, index) => (
-                      <img
-                        key={index}
-                        src={img}
-                        alt="Room"
-                        className="w-12 h-10 object-cover rounded"
-                      />
-                    ))}
-                    {room.images.length > 2 && (
-                      <span className="text-xs text-gray-500">
-                        +{room.images.length - 2} more
-                      </span>
-                    )}
-                  </div>
-                ) : (
-                  <span className="text-xs text-gray-400">No images</span>
-                )}
-              </TableCell>
-              <TableCell>
-                {room.amenities?.length > 0 ? room.amenities.join(", ") : "—"}
-              </TableCell>
-              <TableCell>{room.description || "—"}</TableCell>
-              <TableCell>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleEditClick(room)}
-                >
-                  Edit
-                </Button>
-              </TableCell>
-            </TableRow>
+          {rooms?.map((room) => (
+            <RoomItem
+              room={room}
+              key={room.id}
+              handleEditClick={() => handleEditClick()}
+            />
           ))}
         </TableBody>
       </Table>

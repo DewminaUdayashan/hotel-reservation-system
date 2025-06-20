@@ -45,10 +45,10 @@ export default function AdminLayout({
   const navItems = [
     { href: "/admin", label: "Dashboard", icon: BarChart3 },
     { href: "/admin/reservations", label: "Reservations", icon: Calendar },
-    { href: "/admin/hotels", label: "Hotels", icon: Building },
-    { href: "/admin/rooms", label: "Rooms", icon: Building2 },
     ...(isSuperAdmin
       ? [
+          { href: "/admin/hotels", label: "Hotels", icon: Building },
+          { href: "/admin/rooms", label: "Rooms", icon: Building2 },
           {
             label: "People",
             icon: Users,
