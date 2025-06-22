@@ -277,6 +277,21 @@ export default function NewReservationForm() {
                           form.setValue("checkInDate", range.from);
                         }
                         if (range.to) {
+                          const maxCheckout = new Date(
+                            range.from!.toISOString()
+                          );
+                          maxCheckout.setMonth(maxCheckout.getMonth() + 1);
+
+                          if (range.to > maxCheckout) {
+                            toast({
+                              title: "Invalid checkout date",
+                              description:
+                                "Check-out cannot be more than 1 month after check-in.",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+
                           form.setValue("checkOutDate", range.to);
                         }
                       }}
