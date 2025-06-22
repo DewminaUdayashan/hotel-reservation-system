@@ -119,6 +119,7 @@ Or:
 | `npm run build`    | Builds the app for production               |
 | `npm run start`    | Runs the production build                   |
 | `npm run auto-cancel` | Executes the auto-cancel script manually |
+| `noe test/login.test.js` | Runs the login tests with selenium    |
 
 ---
 

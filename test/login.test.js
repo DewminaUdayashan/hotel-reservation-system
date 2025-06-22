@@ -24,12 +24,12 @@ async function runTest() {
     const usernameInput = await loginForm.findElement(
       By.css('input[name="email"]')
     );
-    await usernameInput.sendKeys("jival38982@claspira.com"); // Replace with your test user
+    await usernameInput.sendKeys("ficoh73292@forcrack.com"); // Replace with your test user
 
     const passwordInput = await loginForm.findElement(
       By.css('input[name="password"]')
     );
-    await passwordInput.sendKeys("Test@123"); // Replace with your test password
+    await passwordInput.sendKeys("user@123"); // Replace with your test password
 
     // 4. Debug: print page source before submit
     const pageSource = await driver.getPageSource();
