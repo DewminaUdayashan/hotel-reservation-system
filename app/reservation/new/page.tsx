@@ -571,7 +571,7 @@ export default function NewReservationForm() {
                             );
                             maxCheckout.setMonth(maxCheckout.getMonth() + 1);
 
-                            if (range.to > maxCheckout) {
+                            if (!room.isResidential && range.to > maxCheckout) {
                               toast({
                                 title: "Invalid checkout date",
                                 description:
