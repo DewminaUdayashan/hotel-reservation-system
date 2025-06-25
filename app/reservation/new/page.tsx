@@ -52,6 +52,8 @@ import {
   Calendar,
   Users,
   MapPin,
+  AlertCircle,
+  Hotel,
 } from "lucide-react";
 
 const formSchema = z
@@ -68,6 +70,16 @@ const formSchema = z
   .refine((data) => data.checkInDate < data.checkOutDate, {
     message: "Check-out must be after check-in",
     path: ["checkOutDate"],
+  })
+  .refine((data) => {
+    // Add validation for residential rooms
+    const nights = Math.ceil(
+      (data.checkOutDate.getTime() - data.checkInDate.getTime()) /
+        (1000 * 60 * 60 * 24)
+    );
+
+    // This will be checked against room data in the component
+    return true; // We'll handle this validation in the component where we have room data
   });
 
 const paymentSchema = z.object({
@@ -117,6 +129,57 @@ const getBankName = (cardNumber: string): string => {
   if (firstFour.startsWith("3782")) return "American Express";
 
   return "Unknown Bank";
+};
+
+// Helper function to calculate stay duration in different units
+const calculateStayDuration = (checkIn: Date, checkOut: Date) => {
+  const nights = Math.ceil(
+    (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)
+  );
+  const weeks = Math.floor(nights / 7);
+  const months = Math.floor(nights / 30);
+
+  return { nights, weeks, months };
+};
+
+// Helper function to get appropriate rate and period for residential rooms
+const getResidentialRate = (room: any, nights: number) => {
+  if (!room?.isResidential) return null;
+
+  // Monthly logic (same as yours)
+  if (nights >= 30 && room.monthlyRate) {
+    const months = Math.floor(nights / 30);
+    const remainingDays = nights % 30;
+    const monthlyTotal = months * room.monthlyRate;
+
+    // Instead of prorated daily, use weekly for remaining days like SQL does
+    const remainingWeeks = Math.ceil(remainingDays / 7);
+    const weeklyTotal = remainingWeeks * room.weeklyRate;
+
+    return {
+      type: "monthly",
+      rate: room.monthlyRate,
+      period: "month + week",
+      total: monthlyTotal + weeklyTotal,
+      breakdown: `${months} month${months !== 1 ? "s" : ""}${remainingWeeks > 0 ? ` + ${remainingWeeks} week${remainingWeeks !== 1 ? "s" : ""}` : ""}`,
+    };
+  }
+
+  // Weekly logic (round up like SQL)
+  if (nights >= 7 && room.weeklyRate) {
+    const weeks = Math.ceil(nights / 7);
+    const total = weeks * room.weeklyRate;
+
+    return {
+      type: "weekly",
+      rate: room.weeklyRate,
+      period: "week",
+      total,
+      breakdown: `${weeks} week${weeks !== 1 ? "s" : ""}`,
+    };
+  }
+
+  return null;
 };
 
 export default function NewReservationForm() {
@@ -183,7 +246,39 @@ export default function NewReservationForm() {
         )
       : 0;
 
-  const totalPrice = !nights || !roomType ? 0 : roomType?.price * nights;
+  // Calculate pricing based on room type
+  const getPricing = () => {
+    if (!nights || !roomType)
+      return { total: 0, breakdown: null, isResidential: false };
+
+    if (room?.isResidential) {
+      const residentialRate = getResidentialRate(room, nights);
+      if (residentialRate) {
+        return {
+          total: residentialRate.total,
+          breakdown: residentialRate,
+          isResidential: true,
+        };
+      }
+      // If residential but doesn't meet minimum stay requirements
+      return {
+        total: 0,
+        breakdown: null,
+        isResidential: true,
+        invalidStay: true,
+      };
+    }
+
+    // Regular room pricing
+    return {
+      total: roomType.price * nights,
+      breakdown: null,
+      isResidential: false,
+    };
+  };
+
+  const pricing = getPricing();
+  const totalPrice = pricing.total;
 
   const formatCardNumber = (value: string) => {
     const v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
@@ -215,6 +310,17 @@ export default function NewReservationForm() {
     }
 
     if (!isAvailable) return;
+
+    // Validate residential room minimum stay
+    if (room?.isResidential && pricing.invalidStay) {
+      toast({
+        title: "Invalid stay duration",
+        description:
+          "Residential rooms require a minimum stay of 7 days for weekly rates or 30 days for monthly rates.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setReservationData(values);
     setCurrentStep("payment");
@@ -466,7 +572,7 @@ export default function NewReservationForm() {
                             );
                             maxCheckout.setMonth(maxCheckout.getMonth() + 1);
 
-                            if (range.to > maxCheckout) {
+                            if (!room.isResidential && range.to > maxCheckout) {
                               toast({
                                 title: "Invalid checkout date",
                                 description:
@@ -495,10 +601,57 @@ export default function NewReservationForm() {
                   <FormControl>
                     <Input
                       disabled
-                      value={`${roomType.name} - $${roomType.price}/night`}
+                      value={
+                        room.isResidential
+                          ? `${roomType.name} - ${room.weeklyRate}/week or ${room.monthlyRate}/month`
+                          : `${roomType.name} - $${roomType.price}/night`
+                      }
                     />
                   </FormControl>
                 </FormItem>
+
+                {room?.isResidential && (
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Hotel className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-900">
+                        Residential Room
+                      </span>
+                    </div>
+                    <p className="text-xs text-blue-700 mb-2">
+                      This is a residential room designed for extended stays.
+                    </p>
+                    <div className="text-xs text-blue-700 space-y-1">
+                      {room.weeklyRate && (
+                        <div>
+                          • Weekly rate: ${room.weeklyRate}/week (minimum 7
+                          days)
+                        </div>
+                      )}
+                      {room.monthlyRate && (
+                        <div>
+                          • Monthly rate: ${room.monthlyRate}/month (minimum 30
+                          days)
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {room?.isResidential && pricing.invalidStay && (
+                  <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+                    <div className="flex items-center gap-2 mb-1">
+                      <AlertCircle className="w-4 h-4 text-red-600" />
+                      <span className="text-sm font-medium text-red-900">
+                        Invalid Stay Duration
+                      </span>
+                    </div>
+                    <p className="text-xs text-red-700">
+                      Residential rooms require a minimum stay of 7 days. Please
+                      select a longer stay period.
+                    </p>
+                  </div>
+                )}
 
                 <FormField
                   name="guests"
@@ -543,15 +696,28 @@ export default function NewReservationForm() {
                 />
 
                 {checkIn && checkOut && (
-                  <div className="text-sm text-muted-foreground">
-                    Stay: {format(checkIn, "PPP")} - {format(checkOut, "PPP")} (
-                    {nights} nights)
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <div>
+                      Stay: {format(checkIn, "PPP")} - {format(checkOut, "PPP")}{" "}
+                      ({nights} nights)
+                    </div>
+                    {pricing.breakdown && (
+                      <div className="text-blue-600">
+                        Billing: {pricing.breakdown.breakdown} at $
+                        {pricing.breakdown.rate}/{pricing.breakdown.period}
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {totalPrice && (
+                {totalPrice > 0 && (
                   <div className="font-medium">
                     Total Price: ${totalPrice.toFixed(2)}
+                    {pricing.breakdown && (
+                      <span className="text-sm font-normal text-muted-foreground ml-2">
+                        ({pricing.breakdown.type} rate)
+                      </span>
+                    )}
                   </div>
                 )}
 
@@ -880,17 +1046,33 @@ export default function NewReservationForm() {
 
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span>Room Rate ({nights} nights)</span>
-                    <span>${roomType.price * nights}</span>
+                    <span>
+                      {pricing.breakdown
+                        ? `${pricing.breakdown.type.charAt(0).toUpperCase() + pricing.breakdown.type.slice(1)} Rate`
+                        : `Room Rate (${nights} nights)`}
+                    </span>
+                    <span>
+                      {pricing.breakdown
+                        ? `$${pricing.breakdown.total.toFixed(2)}`
+                        : `$${roomType.price * nights}`}
+                    </span>
                   </div>
+                  {pricing.breakdown && (
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>{pricing.breakdown.breakdown}</span>
+                      <span>
+                        ${pricing.breakdown.rate}/{pricing.breakdown.period}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm">
                     <span>Taxes & Fees</span>
-                    <span>${(roomType.price * nights * 0.12).toFixed(2)}</span>
+                    <span>${(totalPrice * 0.12).toFixed(2)}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-medium">
                     <span>Authorization Hold</span>
-                    <span>${(roomType.price * nights * 1.12).toFixed(2)}</span>
+                    <span>${(totalPrice * 1.12).toFixed(2)}</span>
                   </div>
                 </div>
 
