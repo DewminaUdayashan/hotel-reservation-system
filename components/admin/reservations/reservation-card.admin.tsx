@@ -1,4 +1,6 @@
-import {
+"use client";
+
+import type {
   ReservationStatusAction,
   ReservationWithAdditionalDetails,
 } from "@/lib/types/reservation";
@@ -13,6 +15,10 @@ import {
   LogIn,
   LogOut,
   Trash,
+  Home,
+  Clock,
+  User,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -41,6 +47,8 @@ import {
   DialogTitle,
 } from "@radix-ui/react-dialog";
 import { useUpdateReservationStatus } from "@/hooks/reservations/reservations.admin";
+import { useRoomById } from "@/hooks/rooms/rooms";
+import { Badge } from "@/components/ui/badge";
 
 type Props = {
   reservation: ReservationWithAdditionalDetails;
@@ -55,6 +63,8 @@ export const ReservationCardAdmin = ({ reservation }: Props) => {
   const cancelReservationMutation = useCancelReservation();
 
   const { data: user } = useUserById(reservation?.customerId);
+  const { data: room } = useRoomById(reservation?.roomId);
+
   const updateStatusMutation = useUpdateReservationStatus(reservation.id);
 
   const canCheckIn = (checkIn: Date) => {
@@ -67,6 +77,76 @@ export const ReservationCardAdmin = ({ reservation }: Props) => {
       setIsCheckInTime(canCheckIn(new Date(reservation.checkIn)));
     }
   }, [reservation]);
+
+  // Calculate stay duration and pricing for residential suites
+  const checkInDate = new Date(reservation.checkIn);
+  const checkOutDate = new Date(reservation.checkOut);
+  const totalDays = Math.ceil(
+    (checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  const isResidential = room?.isResidential;
+
+  // Calculate rate display for residential suites
+  const getRateDisplay = () => {
+    if (!isResidential) {
+      const nightlyRate = reservation.totalAmount / totalDays;
+      return {
+        rate: nightlyRate,
+        period: "night",
+        breakdown: `${totalDays} ${totalDays === 1 ? "night" : "nights"}`,
+      };
+    }
+
+    // For residential suites, determine if weekly or monthly rate applies
+    const weeklyRate = room?.weeklyRate || 0;
+    const monthlyRate = room?.monthlyRate || 0;
+
+    if (totalDays >= 30 && monthlyRate > 0) {
+      const months = Math.floor(totalDays / 30);
+      const remainingDays = totalDays % 30;
+      const remainingWeeks = Math.floor(remainingDays / 7);
+      const finalDays = remainingDays % 7;
+
+      let breakdown = `${months} ${months === 1 ? "month" : "months"}`;
+      if (remainingWeeks > 0) {
+        breakdown += `, ${remainingWeeks} ${remainingWeeks === 1 ? "week" : "weeks"}`;
+      }
+      if (finalDays > 0) {
+        breakdown += `, ${finalDays} ${finalDays === 1 ? "day" : "days"}`;
+      }
+
+      return {
+        rate: monthlyRate,
+        period: "month",
+        breakdown,
+      };
+    } else if (totalDays >= 7 && weeklyRate > 0) {
+      const weeks = Math.floor(totalDays / 7);
+      const remainingDays = totalDays % 7;
+
+      let breakdown = `${weeks} ${weeks === 1 ? "week" : "weeks"}`;
+      if (remainingDays > 0) {
+        breakdown += `, ${remainingDays} ${remainingDays === 1 ? "day" : "days"}`;
+      }
+
+      return {
+        rate: weeklyRate,
+        period: "week",
+        breakdown,
+      };
+    } else {
+      // Fallback to daily rate calculation
+      const dailyRate = reservation.totalAmount / totalDays;
+      return {
+        rate: dailyRate,
+        period: "day",
+        breakdown: `${totalDays} ${totalDays === 1 ? "day" : "days"}`,
+      };
+    }
+  };
+
+  const rateInfo = getRateDisplay();
 
   const handleCancel = () => {
     if (within24Hours) {
@@ -83,9 +163,7 @@ export const ReservationCardAdmin = ({ reservation }: Props) => {
         router.push("/reservations");
         toast({
           title: "Reservation Cancelled",
-          description: `${user?.firstName ?? "The user"} ${
-            user?.lastName
-          }'s reservation has been cancelled.`,
+          description: `${user?.firstName ?? "The user"} ${user?.lastName}'s reservation has been cancelled.`,
         });
       },
       onError: (error) => {
@@ -119,9 +197,7 @@ export const ReservationCardAdmin = ({ reservation }: Props) => {
     } else if (reservation.status === "checked-in") {
       action = "check-out";
       router.push(
-        `/admin/reservations/${
-          reservation.id
-        }/invoice-builder?checkOut=${encodeURIComponent(
+        `/admin/reservations/${reservation.id}/invoice-builder?checkOut=${encodeURIComponent(
           new Date().toISOString()
         )}`
       );
@@ -144,9 +220,7 @@ export const ReservationCardAdmin = ({ reservation }: Props) => {
             title: `${action === "check-in" ? "Check-in" : "Check-out"} Failed`,
             description:
               error.message ??
-              `An error occurred while ${
-                action === "check-in" ? "checking in" : "checking out"
-              } the reservation.`,
+              `An error occurred while ${action === "check-in" ? "checking in" : "checking out"} the reservation.`,
             variant: "destructive",
           });
         },
@@ -160,15 +234,34 @@ export const ReservationCardAdmin = ({ reservation }: Props) => {
         <div className="flex justify-between items-start">
           <div>
             <CardTitle className="text-lg">{reservation?.roomName}</CardTitle>
-            <CardDescription>Reservation #{reservation.id}</CardDescription>
+            <CardDescription className="flex items-center gap-2">
+              <span>Reservation #{reservation.id}</span>
+              {user && (
+                <span className="flex items-center gap-1">
+                  <User className="h-3 w-3" />
+                  {user.firstName} {user.lastName}
+                </span>
+              )}
+            </CardDescription>
           </div>
           <div className="flex flex-col items-end gap-1">
-            <ReservationStatusBadge status={reservation.status} />
-            {reservation.status !== "cancelled" && (
-              <ReservationPaymentStatusBadge
-                status={reservation.paymentStatus}
-              />
-            )}
+            <div className="flex gap-1">
+              <ReservationStatusBadge status={reservation.status} />
+              {reservation.status !== "cancelled" && (
+                <ReservationPaymentStatusBadge
+                  status={reservation.paymentStatus}
+                />
+              )}
+              {isResidential && (
+                <Badge
+                  variant="outline"
+                  className="bg-blue-50 text-blue-700 border-blue-200"
+                >
+                  <Home className="h-3 w-3 mr-1" />
+                  Residential
+                </Badge>
+              )}
+            </div>
             {isCheckInTime && reservation.status === "confirmed" && (
               <div className="flex items-center text-sm text-green-600 mt-1">
                 <CheckCircle className="h-4 w-4 mr-1" />
@@ -191,14 +284,33 @@ export const ReservationCardAdmin = ({ reservation }: Props) => {
             </div>
             <div className="flex items-center text-sm">
               <Hotel className="mr-2 h-4 w-4 text-muted-foreground" />
-              <span>Room {reservation.id}</span>
+              <span>Room {reservation.roomId}</span>
             </div>
+            <div className="flex items-center text-sm">
+              <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
+              <span>{rateInfo.breakdown}</span>
+            </div>
+            {reservation.guests && (
+              <div className="flex items-center text-sm">
+                <Users className="mr-2 h-4 w-4 text-muted-foreground" />
+                <span>
+                  {reservation.guests}{" "}
+                  {reservation.guests === 1 ? "guest" : "guests"}
+                </span>
+              </div>
+            )}
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span>Total Amount:</span>
               <span className="font-medium">
                 ${reservation.totalAmount?.toFixed(2)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span>Rate:</span>
+              <span className="text-muted-foreground">
+                ${rateInfo.rate.toFixed(2)} / {rateInfo.period}
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">
@@ -212,8 +324,25 @@ export const ReservationCardAdmin = ({ reservation }: Props) => {
                 </span>
               </div>
             </div>
+            {/* {reservation.cardHolderName && reservation.maskedCardNumber && (
+              <div className="flex items-center justify-between text-sm">
+                <span>Card:</span>
+                <span className="text-muted-foreground text-xs">
+                  {reservation.maskedCardNumber}
+                </span>
+              </div>
+            )} */}
           </div>
         </div>
+
+        {reservation.specialRequests && (
+          <div className="mt-4 p-3 bg-muted/50 rounded-md">
+            <h4 className="text-sm font-medium mb-1">Special Requests</h4>
+            <p className="text-sm text-muted-foreground">
+              {reservation.specialRequests}
+            </p>
+          </div>
+        )}
       </CardContent>
 
       <CardFooter className="pt-2">

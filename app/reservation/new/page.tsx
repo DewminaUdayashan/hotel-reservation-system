@@ -146,35 +146,36 @@ const calculateStayDuration = (checkIn: Date, checkOut: Date) => {
 const getResidentialRate = (room: any, nights: number) => {
   if (!room?.isResidential) return null;
 
-  // For stays 30+ days, use monthly rate
+  // Monthly logic (same as yours)
   if (nights >= 30 && room.monthlyRate) {
     const months = Math.floor(nights / 30);
     const remainingDays = nights % 30;
     const monthlyTotal = months * room.monthlyRate;
-    const dailyTotal = remainingDays * (room.monthlyRate / 30); // Pro-rated daily rate
+
+    // Instead of prorated daily, use weekly for remaining days like SQL does
+    const remainingWeeks = Math.ceil(remainingDays / 7);
+    const weeklyTotal = remainingWeeks * room.weeklyRate;
 
     return {
       type: "monthly",
       rate: room.monthlyRate,
-      period: "month",
-      total: monthlyTotal + dailyTotal,
-      breakdown: `${months} month${months !== 1 ? "s" : ""}${remainingDays > 0 ? ` + ${remainingDays} days` : ""}`,
+      period: "month + week",
+      total: monthlyTotal + weeklyTotal,
+      breakdown: `${months} month${months !== 1 ? "s" : ""}${remainingWeeks > 0 ? ` + ${remainingWeeks} week${remainingWeeks !== 1 ? "s" : ""}` : ""}`,
     };
   }
 
-  // For stays 7+ days, use weekly rate
+  // Weekly logic (round up like SQL)
   if (nights >= 7 && room.weeklyRate) {
-    const weeks = Math.floor(nights / 7);
-    const remainingDays = nights % 7;
-    const weeklyTotal = weeks * room.weeklyRate;
-    const dailyTotal = remainingDays * (room.weeklyRate / 7); // Pro-rated daily rate
+    const weeks = Math.ceil(nights / 7);
+    const total = weeks * room.weeklyRate;
 
     return {
       type: "weekly",
       rate: room.weeklyRate,
       period: "week",
-      total: weeklyTotal + dailyTotal,
-      breakdown: `${weeks} week${weeks !== 1 ? "s" : ""}${remainingDays > 0 ? ` + ${remainingDays} days` : ""}`,
+      total,
+      breakdown: `${weeks} week${weeks !== 1 ? "s" : ""}`,
     };
   }
 
