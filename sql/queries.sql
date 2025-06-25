@@ -101,7 +101,7 @@ CREATE TABLE RoomTypeAmenities (
 );
 
 CREATE TABLE Rooms (
-    id INT PRIMARY KEY,
+    id INT IDENTITY(1,1) PRIMARY KEY,
     name NVARCHAR(255) NOT NULL,
     description NVARCHAR(MAX),
     status NVARCHAR(20) NOT NULL CHECK (status IN ('available', 'maintenance')),
