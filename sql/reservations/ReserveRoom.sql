@@ -4,7 +4,15 @@ CREATE OR ALTER PROCEDURE ReserveRoom
     @checkInDate DATE,
     @checkOutDate DATE,
     @numberOfGuests INT,
-    @specialRequests NVARCHAR(500) = NULL
+    @specialRequests NVARCHAR(500) = NULL,
+
+    -- Optional payment details
+    @cardHolderName NVARCHAR(100) = NULL,
+    @maskedCardNumber NVARCHAR(25) = NULL,
+    @cardType NVARCHAR(50) = NULL,
+    @expiryMonth INT = NULL,
+    @expiryYear INT = NULL,
+    @bankName NVARCHAR(255) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -39,7 +47,12 @@ BEGIN
         RETURN;
     END
 
-    DECLARE @roomCharge DECIMAL(10,2) = @nights * @price;
+    -- Determine status based on payment info
+    DECLARE @status NVARCHAR(50) =
+        CASE
+            WHEN @cardHolderName IS NOT NULL AND @maskedCardNumber IS NOT NULL THEN 'confirmed'
+            ELSE 'pending'
+        END;
 
     -- Insert Reservation
     INSERT INTO Reservations (
@@ -58,46 +71,37 @@ BEGIN
         @numberOfGuests,
         @checkInDate,
         @checkOutDate,
-        'pending',
+        @status,
         GETDATE(),
         @specialRequests
     );
 
     DECLARE @reservationId INT = SCOPE_IDENTITY();
 
-    -- -- Create Invoice
-    -- INSERT INTO Invoices (
-    --     reservationId,
-    --     invoiceDate,
-    --     dueDate,
-    --     totalAmount,
-    --     status,
-    --     paymentMethod
-    -- )
-    -- VALUES (
-    --     @reservationId,
-    --     GETDATE(),
-    --     @checkInDate,              -- Due at check-in
-    --     @roomCharge,
-    --     'unpaid',
-    --     NULL
-    -- );
-
-    -- DECLARE @invoiceId INT = SCOPE_IDENTITY();
-
-    -- -- Add Invoice Line Item for room charge
-    -- INSERT INTO InvoiceLineItems (
-    --     invoiceId,
-    --     description,
-    --     amount,
-    --     serviceTypeId  -- NULL for room charge
-    -- )
-    -- VALUES (
-    --     @invoiceId,
-    --     CONCAT('Room charge for ', @nights, ' night(s)'),
-    --     @roomCharge,
-    --     NULL
-    -- );
+    -- Conditionally insert payment details
+    IF @cardHolderName IS NOT NULL AND @maskedCardNumber IS NOT NULL
+    BEGIN
+        INSERT INTO ReservationPayments (
+            reservationId,
+            cardHolderName,
+            maskedCardNumber,
+            cardType,
+            expiryMonth,
+            expiryYear,
+            bankName,
+            createdAt
+        )
+        VALUES (
+            @reservationId,
+            @cardHolderName,
+            @maskedCardNumber,
+            @cardType,
+            @expiryMonth,
+            @expiryYear,
+            @bankName,
+            GETDATE()
+        );
+    END
 
     SELECT @reservationId AS reservationId;
 END;

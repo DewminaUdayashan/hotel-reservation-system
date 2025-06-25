@@ -19,8 +19,9 @@ export const useReserveRoom = () => {
       return res.data.reservationId;
     },
     onSuccess: () => {
-      // Invalidate the reservations query to refetch the data
-      queryClient.invalidateQueries({ queryKey: [queryKeys.userReservations] });
+      queryClient.invalidateQueries({
+        queryKey: [queryKeys.userReservations],
+      });
     },
   });
 };

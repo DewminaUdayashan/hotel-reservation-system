@@ -63,6 +63,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         { name: "homeTown", value: homeTown || null },
         { name: "customerType", value: customerType },
         { name: "agencyId", value: finalAgencyId || null },
+        { name: "mustResetPassword", value: true },
       ]
     );
 

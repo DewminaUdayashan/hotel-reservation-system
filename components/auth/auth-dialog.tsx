@@ -22,6 +22,7 @@ import { Alert, AlertDescription } from "../ui/alert";
 import { useResendCode } from "@/hooks/auth/useResendCode";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useVerifyEmail } from "@/hooks/auth/useVerifyEmail";
+import { z } from "zod";
 
 type AuthDialogProps = {
   open: boolean;
@@ -30,6 +31,38 @@ type AuthDialogProps = {
 };
 
 type AuthStep = "auth" | "verify-email" | "password-reset";
+
+const loginSchema = z.object({
+  email: z.string().email({ message: "Email is invalid" }),
+  password: z
+    .string()
+    .min(6, { message: "Password must be at least 6 characters" }),
+});
+
+const registerSchema = z
+  .object({
+    firstName: z.string().min(1, { message: "First name is required" }),
+    lastName: z.string().min(1, { message: "Last name is required" }),
+    email: z.string().email({ message: "Email is invalid" }),
+    password: z
+      .string()
+      .min(6, { message: "Password must be at least 6 characters" }),
+    phone: z
+      .string()
+      .min(1, { message: "Phone is required" })
+      .regex(/^\+?\d{10,15}$/, {
+        message: "Phone number must be 10 to 15 digits (with optional +)",
+      }),
+    homeTown: z.string().optional(),
+    confirmPassword: z.string().optional(),
+  })
+  .refine(
+    (data) => !data.confirmPassword || data.password === data.confirmPassword,
+    {
+      message: "Passwords do not match",
+      path: ["confirmPassword"],
+    }
+  );
 
 export function AuthDialog({
   open,
@@ -98,45 +131,26 @@ export function AuthDialog({
   };
 
   const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (activeTab === "register") {
-      if (!formData.firstName.trim()) {
-        newErrors.firstName = "First name is required";
-      }
-
-      if (!formData.lastName.trim()) {
-        newErrors.lastName = "Last name is required";
-      }
-
-      if (!formData.phone.trim()) {
-        newErrors.phone = "Phone is required";
-      } else if (!/^\+?\d{10,15}$/.test(formData.phone)) {
-        newErrors.phone =
-          "Phone number must be 10 to 15 digits (with optional +)";
-      } else {
-        // Count digits only (exclude +) to ensure valid length
-        const digitCount = formData.phone.replace(/\D/g, "").length;
-        if (digitCount < 10 || digitCount > 15) {
-          newErrors.phone = "Phone number must be 10 to 15 digits long";
-        }
-      }
+    let result;
+    if (activeTab === "login") {
+      result = loginSchema.safeParse({
+        email: formData.email,
+        password: formData.password,
+      });
+    } else {
+      result = registerSchema.safeParse(formData);
     }
 
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Email is invalid";
+    if (!result.success) {
+      const newErrors: Record<string, string> = {};
+      result.error.errors.forEach((err) => {
+        if (err.path[0]) newErrors[err.path[0] as string] = err.message;
+      });
+      setErrors(newErrors);
+      return false;
     }
-
-    if (!formData.password.trim()) {
-      newErrors.password = "Password is required";
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setErrors({});
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
