@@ -32,11 +32,20 @@ const formSchema = z
     email: z.string().email(),
     firstName: z.string().min(1),
     lastName: z.string().min(1),
-    phone: z.string().min(5),
+    phone: z
+      .string()
+      .min(10, { message: "Phone number must be at least 10 digits" })
+      .max(15, { message: "Phone number must be no more than 15 digits" })
+      .regex(/^[0-9]+$/, { message: "Phone number must contain only digits" }),
     homeTown: z.string().optional(),
     customerType: z.enum(["individual", "agency"]),
     agencyName: z.string().optional(),
-    agencyPhone: z.string().optional(),
+    agencyPhone: z
+      .string()
+      .min(10, { message: "Phone number must be at least 10 digits" })
+      .max(15, { message: "Phone number must be no more than 15 digits" })
+      .regex(/^[0-9]+$/, { message: "Phone number must contain only digits" })
+      .optional(),
   })
   .superRefine((data, ctx) => {
     if (data.customerType === "agency") {

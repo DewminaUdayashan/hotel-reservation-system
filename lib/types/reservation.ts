@@ -72,6 +72,14 @@ export type ReserveRoomInput = {
   specialRequests?: string;
   email: string;
   name: string;
+
+  // Optional payment details
+  cardHolderName?: string;
+  maskedCardNumber?: string;
+  cardType?: string;
+  expiryMonth?: number;
+  expiryYear?: number;
+  bankName?: string;
 };
 
 export type UpdateReservationInput = {

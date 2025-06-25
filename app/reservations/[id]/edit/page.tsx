@@ -69,6 +69,12 @@ import { isWithin24Hours } from "@/lib/utils/moment";
 const formSchema = z.object({
   specialRequests: z.string().optional(),
   guests: z.string().min(1, "Number of guests is required"),
+  cardHolderName: z.string().optional(),
+  maskedCardNumber: z.string().optional(),
+  cardType: z.string().optional(),
+  expiryMonth: z.string().optional(),
+  expiryYear: z.string().optional(),
+  bankName: z.string().optional(),
 });
 
 export default function EditReservationPage() {
@@ -400,6 +406,98 @@ export default function EditReservationPage() {
                         )}
                       />
                     </div>
+                  </div>
+                  <Separator />
+                  <div className="space-y-6">
+                    <FormLabel>Payment Information (Optional)</FormLabel>
+
+                    <FormField
+                      control={form.control}
+                      name="cardHolderName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Cardholder Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="John Doe" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="maskedCardNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Masked Card Number</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="**** **** **** 1234"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="cardType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Card Type</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Visa / MasterCard" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="expiryMonth"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Expiry Month</FormLabel>
+                            <FormControl>
+                              <Input placeholder="MM" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="expiryYear"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Expiry Year</FormLabel>
+                            <FormControl>
+                              <Input placeholder="YYYY" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="bankName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Bank Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Bank of LuxeStay" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
 
                   <div className="flex justify-between">

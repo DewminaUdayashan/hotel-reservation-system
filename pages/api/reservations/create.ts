@@ -9,8 +9,10 @@ export default async function handler(
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
+
   const token = req.headers.authorization?.split(" ")[1];
   if (!token) return res.status(401).json({ error: "Unauthorized" });
+
   const user = getUserFromToken(token);
   if (!user?.id) return res.status(401).json({ error: "Invalid user token" });
 
@@ -22,6 +24,14 @@ export default async function handler(
     specialRequests,
     name,
     email,
+
+    // Optional payment fields
+    cardHolderName,
+    maskedCardNumber,
+    cardType,
+    expiryMonth,
+    expiryYear,
+    bankName,
   } = req.body;
 
   if (!roomId || !checkInDate || !checkOutDate || !numberOfGuests) {
@@ -30,7 +40,21 @@ export default async function handler(
 
   try {
     const result = await executeQuery(
-      "EXEC ReserveRoom @customerId, @roomId, @checkInDate, @checkOutDate, @numberOfGuests, @specialRequests",
+      `
+      EXEC ReserveRoom
+        @customerId,
+        @roomId,
+        @checkInDate,
+        @checkOutDate,
+        @numberOfGuests,
+        @specialRequests,
+        @cardHolderName,
+        @maskedCardNumber,
+        @cardType,
+        @expiryMonth,
+        @expiryYear,
+        @bankName
+      `,
       [
         { name: "customerId", value: user.id },
         { name: "roomId", value: roomId },
@@ -38,9 +62,18 @@ export default async function handler(
         { name: "checkOutDate", value: checkOutDate },
         { name: "numberOfGuests", value: numberOfGuests },
         { name: "specialRequests", value: specialRequests || null },
+
+        // Payment params (optional)
+        { name: "cardHolderName", value: cardHolderName || null },
+        { name: "maskedCardNumber", value: maskedCardNumber || null },
+        { name: "cardType", value: cardType || null },
+        { name: "expiryMonth", value: expiryMonth || null },
+        { name: "expiryYear", value: expiryYear || null },
+        { name: "bankName", value: bankName || null },
       ]
     );
 
+    // Send email confirmation
     await fetch(
       `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/send`,
       {
