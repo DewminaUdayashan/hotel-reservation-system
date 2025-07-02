@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { redirect, usePathname } from "next/navigation";
 import {
   BarChart3,
   Building2,
@@ -29,7 +29,7 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const isSuperAdmin = user?.role === "admin";
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -37,6 +37,14 @@ export default function AdminLayout({
     [label: string]: boolean;
   }>({});
   const pathname = usePathname();
+
+  useEffect(() => {
+    if (user && !isAdmin) {
+      redirect("/");
+    }
+  }, [user, isAdmin]);
+
+  if (!isAdmin) return null;
 
   const toggleSubmenu = (label: string) => {
     setOpenSubmenus((prev) => ({ ...prev, [label]: !prev[label] }));

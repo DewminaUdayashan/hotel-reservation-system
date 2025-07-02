@@ -10,15 +10,15 @@ interface Props {
 export const ProtectedRoute = ({ children, requireAdmin }: Props) => {
   const { user, isAdmin } = useAuth();
 
-  useEffect(() => {
-    if (!user && !isAdmin) redirect("/");
+  // useEffect(() => {
+  //   if (!user && !isAdmin) redirect("/");
 
-    if (requireAdmin && !isAdmin) {
-      redirect("/");
-    }
-  }, [user]);
+  //   if (requireAdmin && !isAdmin) {
+  //     redirect("/");
+  //   }
+  // }, [user]);
 
-  if (!user) redirect("/");
+  // if (!user) redirect("/");
 
   return <>{children}</>;
 };

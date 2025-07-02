@@ -20,11 +20,13 @@ interface AuthContextType {
   ) => void;
   logout: () => void;
   isAdmin: boolean;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -94,14 +96,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } else {
           setToken(storedToken);
           setUser(JSON.parse(storedUser));
-          if (storedCustomer) setCustomer(JSON.parse(storedCustomer));
-          if (storedAgency) setAgency(JSON.parse(storedAgency));
-          if (storedHotelUser) setHotelUser(JSON.parse(storedHotelUser));
+          if (storedCustomer) {
+            const parsedCustomer = JSON.parse(storedCustomer);
+            if (parsedCustomer && parsedCustomer.id) {
+              setCustomer(parsedCustomer);
+            }
+          }
+          if (storedHotelUser) {
+            const parsedHotelUser = JSON.parse(storedHotelUser);
+            if (parsedHotelUser && parsedHotelUser.id) {
+              setHotelUser(parsedHotelUser);
+            }
+          }
+          if (storedAgency) {
+            const parsedAgency = JSON.parse(storedAgency);
+            if (parsedAgency && parsedAgency.id) {
+              const agency: Agency = {
+                ...parsedAgency,
+                agencyId: parsedAgency.id,
+                agencyName: parsedAgency.name,
+                agencyPhone: parsedAgency.phone,
+              };
+              console.log("Parsed Agency:", agency);
+              setAgency(agency);
+            }
+          }
         }
       } catch {
         logout();
       }
     }
+    setLoading(false);
   }, []);
 
   return (
@@ -115,6 +140,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         login,
         logout,
         isAdmin: user?.role !== "customer",
+        loading,
       }}
     >
       {children}

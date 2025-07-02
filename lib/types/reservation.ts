@@ -36,6 +36,8 @@ export type Reservation = {
 export type ReservationWithAdditionalDetails = Reservation & {
   roomName: string;
   roomType: string;
+  blockBookingId?: number;
+  blockTotalAmount?: number;
 };
 
 export type ReservationDetails = ReservationWithAdditionalDetails & {

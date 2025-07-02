@@ -23,6 +23,7 @@ import { useResendCode } from "@/hooks/auth/useResendCode";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useVerifyEmail } from "@/hooks/auth/useVerifyEmail";
 import { z } from "zod";
+import { Checkbox } from "../ui/checkbox";
 
 type AuthDialogProps = {
   open: boolean;
@@ -39,31 +40,6 @@ const loginSchema = z.object({
     .min(6, { message: "Password must be at least 6 characters" }),
 });
 
-const registerSchema = z
-  .object({
-    firstName: z.string().min(1, { message: "First name is required" }),
-    lastName: z.string().min(1, { message: "Last name is required" }),
-    email: z.string().email({ message: "Email is invalid" }),
-    password: z
-      .string()
-      .min(6, { message: "Password must be at least 6 characters" }),
-    phone: z
-      .string()
-      .min(1, { message: "Phone is required" })
-      .regex(/^\+?\d{10,15}$/, {
-        message: "Phone number must be 10 to 15 digits (with optional +)",
-      }),
-    homeTown: z.string().optional(),
-    confirmPassword: z.string().optional(),
-  })
-  .refine(
-    (data) => !data.confirmPassword || data.password === data.confirmPassword,
-    {
-      message: "Passwords do not match",
-      path: ["confirmPassword"],
-    }
-  );
-
 export function AuthDialog({
   open,
   onOpenChange,
@@ -75,6 +51,7 @@ export function AuthDialog({
   const [verificationCode, setVerificationCode] = useState("");
   const [userEmail, setUserEmail] = useState("");
   const [resendCoolDown, setResendCoolDown] = useState(0);
+  const [isAgency, setIsAgency] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -84,6 +61,8 @@ export function AuthDialog({
     phone: "",
     homeTown: "",
     confirmPassword: "",
+    agencyName: "",
+    agencyPhone: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -91,6 +70,52 @@ export function AuthDialog({
   const registerMutation = useRegister();
   const resendMutation = useResendCode();
   const verifyEmailMutation = useVerifyEmail();
+
+  const registerSchema = z
+    .object({
+      firstName: z.string().min(1, { message: "First name is required" }),
+      lastName: z.string().min(1, { message: "Last name is required" }),
+      email: z.string().email({ message: "Email is invalid" }),
+      password: z
+        .string()
+        .min(6, { message: "Password must be at least 6 characters" }),
+      phone: z
+        .string()
+        .min(1, { message: "Phone is required" })
+        .regex(/^\+?\d{10,15}$/, {
+          message: "Phone number must be 10 to 15 digits (with optional +)",
+        }),
+      homeTown: z.string().optional(),
+      confirmPassword: z.string().optional(),
+      agencyName: z.string().optional(),
+      agencyPhone: z.string().optional(),
+    })
+    .refine(
+      (data) => !data.confirmPassword || data.password === data.confirmPassword,
+      {
+        message: "Passwords do not match",
+        path: ["confirmPassword"],
+      }
+    )
+    .superRefine((data, ctx) => {
+      if (isAgency) {
+        if (!data.agencyName) {
+          ctx.addIssue({
+            path: ["agencyName"],
+            code: z.ZodIssueCode.custom,
+            message: "Agency name is required",
+          });
+        }
+        if (!data.agencyPhone || !/^\+?\d{10,15}$/.test(data.agencyPhone)) {
+          ctx.addIssue({
+            path: ["agencyPhone"],
+            code: z.ZodIssueCode.custom,
+            message:
+              "Agency phone must be 10 to 15 digits (with optional + at the start)",
+          });
+        }
+      }
+    });
 
   // Start cool down timer for resend button
   const startResendCoolDown = () => {
@@ -210,6 +235,8 @@ export function AuthDialog({
           phone: formData.phone,
           homeTown: formData.homeTown,
           role: "customer",
+          agencyName: isAgency ? formData.agencyName : undefined,
+          agencyPhone: isAgency ? formData.agencyPhone : undefined,
         },
         {
           onSuccess: (data) => {
@@ -313,6 +340,7 @@ export function AuthDialog({
     setActiveTab("login");
     setVerificationCode("");
     setUserEmail("");
+    setIsAgency;
     setErrors({});
     setFormData({
       firstName: "",
@@ -322,6 +350,8 @@ export function AuthDialog({
       phone: "",
       homeTown: "",
       confirmPassword: "",
+      agencyName: "",
+      agencyPhone: "",
     });
   };
   // Email Verification Step
@@ -648,6 +678,51 @@ export function AuthDialog({
                     onChange={handleChange}
                   />
                 </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isAgency"
+                    checked={isAgency}
+                    onCheckedChange={(checked) => setIsAgency(checked === true)}
+                  />
+                  <Label htmlFor="isAgency">Registering as an Agency</Label>
+                </div>
+
+                {isAgency && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="agencyName">Agency Name</Label>
+                      <Input
+                        id="agencyName"
+                        name="agencyName"
+                        placeholder="Awesome Travels"
+                        value={formData.agencyName}
+                        onChange={handleChange}
+                      />
+                      {errors.agencyName && (
+                        <p className="text-sm text-red-500">
+                          {errors.agencyName}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="agencyPhone">Agency Phone</Label>
+                      <Input
+                        id="agencyPhone"
+                        name="agencyPhone"
+                        placeholder="+1234567890"
+                        value={formData.agencyPhone}
+                        onChange={handleChange}
+                      />
+                      {errors.agencyPhone && (
+                        <p className="text-sm text-red-500">
+                          {errors.agencyPhone}
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
 
               <DialogFooter>
