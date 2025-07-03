@@ -116,7 +116,10 @@ export const ReservationCard = ({ reservation }: Props) => {
             <div className="flex items-center justify-between text-sm">
               <span>Total Amount:</span>
               <span className="font-medium">
-                ${reservation.totalAmount.toFixed(2)}
+                $
+                {reservation.blockBookingId
+                  ? reservation.blockTotalAmount?.toFixed(2)
+                  : reservation.totalAmount.toFixed(2)}
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">

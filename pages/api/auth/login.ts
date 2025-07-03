@@ -110,7 +110,7 @@ export default async function handler(
         : null,
       agency: user.agencyId
         ? {
-            id: user.agencyId,
+            id: user.agencyId[0],
             name: user.agencyName,
             phone: user.agencyPhone,
             createdAt: user.agencyCreatedAt,

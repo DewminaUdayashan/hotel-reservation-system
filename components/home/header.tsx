@@ -11,7 +11,8 @@ import { UserOnly } from "../user-only";
 
 export function Header() {
   const [showAuthDialog, setShowAuthDialog] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, agency, logout } = useAuth();
+
   return (
     <header className="border-b">
       <div className="container flex h-16 items-center justify-between px-4 md:px-6">
@@ -60,6 +61,13 @@ export function Header() {
               </Button>
             </Link>
           </AdminOnly>
+          {agency && agency.agencyId && (
+            <Link href="/block">
+              <Button variant="outline" size="sm" className="hidden md:flex">
+                Block Booking
+              </Button>
+            </Link>
+          )}
 
           {!user || !user.isEmailVerified || user.mustResetPassword ? (
             <Button size="sm" onClick={() => setShowAuthDialog(true)}>

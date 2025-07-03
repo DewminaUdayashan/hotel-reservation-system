@@ -14,15 +14,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useLogin } from "@/hooks/auth/useLogin";
+import { useLogin, useResetPassword } from "@/hooks/auth/useLogin";
 import { useRegister } from "@/hooks/auth/useRegister";
 import { toast } from "@/hooks/use-toast";
-import { AlertCircle, ArrowLeft, Mail } from "lucide-react";
+import { AlertCircle, ArrowLeft, Mail, Lock, Key } from "lucide-react";
 import { Alert, AlertDescription } from "../ui/alert";
 import { useResendCode } from "@/hooks/auth/useResendCode";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useVerifyEmail } from "@/hooks/auth/useVerifyEmail";
 import { z } from "zod";
+import { Checkbox } from "../ui/checkbox";
 
 type AuthDialogProps = {
   open: boolean;
@@ -30,7 +31,13 @@ type AuthDialogProps = {
   onSuccess?: () => void;
 };
 
-type AuthStep = "auth" | "verify-email" | "password-reset";
+type AuthStep =
+  | "auth"
+  | "verify-email"
+  | "password-reset"
+  | "forgot-password"
+  | "verify-reset-code"
+  | "reset-password";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Email is invalid" }),
@@ -38,31 +45,6 @@ const loginSchema = z.object({
     .string()
     .min(6, { message: "Password must be at least 6 characters" }),
 });
-
-const registerSchema = z
-  .object({
-    firstName: z.string().min(1, { message: "First name is required" }),
-    lastName: z.string().min(1, { message: "Last name is required" }),
-    email: z.string().email({ message: "Email is invalid" }),
-    password: z
-      .string()
-      .min(6, { message: "Password must be at least 6 characters" }),
-    phone: z
-      .string()
-      .min(1, { message: "Phone is required" })
-      .regex(/^\+?\d{10,15}$/, {
-        message: "Phone number must be 10 to 15 digits (with optional +)",
-      }),
-    homeTown: z.string().optional(),
-    confirmPassword: z.string().optional(),
-  })
-  .refine(
-    (data) => !data.confirmPassword || data.password === data.confirmPassword,
-    {
-      message: "Passwords do not match",
-      path: ["confirmPassword"],
-    }
-  );
 
 export function AuthDialog({
   open,
@@ -73,8 +55,11 @@ export function AuthDialog({
   const [activeTab, setActiveTab] = useState<string>("login");
   const [currentStep, setCurrentStep] = useState<AuthStep>("auth");
   const [verificationCode, setVerificationCode] = useState("");
+  const [resetCode, setResetCode] = useState("");
   const [userEmail, setUserEmail] = useState("");
+  const [resetToken, setResetToken] = useState("");
   const [resendCoolDown, setResendCoolDown] = useState(0);
+  const [isAgency, setIsAgency] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -84,6 +69,10 @@ export function AuthDialog({
     phone: "",
     homeTown: "",
     confirmPassword: "",
+    agencyName: "",
+    agencyPhone: "",
+    newPassword: "",
+    confirmNewPassword: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -91,6 +80,65 @@ export function AuthDialog({
   const registerMutation = useRegister();
   const resendMutation = useResendCode();
   const verifyEmailMutation = useVerifyEmail();
+  const resetPasswordMutation = useResetPassword();
+
+  const registerSchema = z
+    .object({
+      firstName: z.string().min(1, { message: "First name is required" }),
+      lastName: z.string().min(1, { message: "Last name is required" }),
+      email: z.string().email({ message: "Email is invalid" }),
+      password: z
+        .string()
+        .min(6, { message: "Password must be at least 6 characters" }),
+      phone: z
+        .string()
+        .min(1, { message: "Phone is required" })
+        .regex(/^\+?\d{10,15}$/, {
+          message: "Phone number must be 10 to 15 digits (with optional +)",
+        }),
+      homeTown: z.string().optional(),
+      confirmPassword: z.string().optional(),
+      agencyName: z.string().optional(),
+      agencyPhone: z.string().optional(),
+    })
+    .refine(
+      (data) => !data.confirmPassword || data.password === data.confirmPassword,
+      {
+        message: "Passwords do not match",
+        path: ["confirmPassword"],
+      }
+    )
+    .superRefine((data, ctx) => {
+      if (isAgency) {
+        if (!data.agencyName) {
+          ctx.addIssue({
+            path: ["agencyName"],
+            code: z.ZodIssueCode.custom,
+            message: "Agency name is required",
+          });
+        }
+        if (!data.agencyPhone || !/^\+?\d{10,15}$/.test(data.agencyPhone)) {
+          ctx.addIssue({
+            path: ["agencyPhone"],
+            code: z.ZodIssueCode.custom,
+            message:
+              "Agency phone must be 10 to 15 digits (with optional + at the start)",
+          });
+        }
+      }
+    });
+
+  const resetPasswordSchema = z
+    .object({
+      newPassword: z
+        .string()
+        .min(6, { message: "Password must be at least 6 characters" }),
+      confirmNewPassword: z.string(),
+    })
+    .refine((data) => data.newPassword === data.confirmNewPassword, {
+      message: "Passwords do not match",
+      path: ["confirmNewPassword"],
+    });
 
   // Start cool down timer for resend button
   const startResendCoolDown = () => {
@@ -109,7 +157,7 @@ export function AuthDialog({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
-    if (name === "phone") {
+    if (name === "phone" || name === "agencyPhone") {
       // Allow only numbers and one optional + at the beginning
       let cleaned = value.replace(/[^\d+]/g, "");
 
@@ -140,6 +188,24 @@ export function AuthDialog({
     } else {
       result = registerSchema.safeParse(formData);
     }
+
+    if (!result.success) {
+      const newErrors: Record<string, string> = {};
+      result.error.errors.forEach((err) => {
+        if (err.path[0]) newErrors[err.path[0] as string] = err.message;
+      });
+      setErrors(newErrors);
+      return false;
+    }
+    setErrors({});
+    return true;
+  };
+
+  const validateResetPassword = () => {
+    const result = resetPasswordSchema.safeParse({
+      newPassword: formData.newPassword,
+      confirmNewPassword: formData.confirmNewPassword,
+    });
 
     if (!result.success) {
       const newErrors: Record<string, string> = {};
@@ -210,6 +276,8 @@ export function AuthDialog({
           phone: formData.phone,
           homeTown: formData.homeTown,
           role: "customer",
+          agencyName: isAgency ? formData.agencyName : undefined,
+          agencyPhone: isAgency ? formData.agencyPhone : undefined,
         },
         {
           onSuccess: (data) => {
@@ -253,6 +321,7 @@ export function AuthDialog({
       );
     }
   };
+
   const handleVerifyEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     verifyEmailMutation.mutate(
@@ -304,6 +373,99 @@ export function AuthDialog({
     );
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.email) {
+      setErrors({ email: "Email is required" });
+      return;
+    }
+
+    resendMutation.mutate(
+      { email: formData.email, user: formData.firstName || "there!" },
+      {
+        onSuccess: () => {
+          setUserEmail(formData.email);
+          setCurrentStep("verify-reset-code");
+          startResendCoolDown();
+          toast({
+            title: "Reset code sent",
+            description: "Please check your email for the password reset code.",
+          });
+        },
+        onError: (error: any) => {
+          const errorMessage =
+            error.response?.data?.error || "Failed to send reset code.";
+          setErrors({ email: errorMessage });
+          toast({
+            title: "Error",
+            description: errorMessage,
+            variant: "destructive",
+          });
+        },
+      }
+    );
+  };
+
+  const handleVerifyResetCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetCode) {
+      setErrors({ resetCode: "Reset code is required" });
+      return;
+    }
+
+    verifyEmailMutation.mutate(
+      { email: userEmail, token: resetCode },
+      {
+        onSuccess: (data) => {
+          // setResetToken(data.resetToken);
+          setCurrentStep("reset-password");
+          toast({
+            title: "Code verified",
+            description: "Please enter your new password.",
+          });
+        },
+        onError: (error: any) => {
+          const errorMessage =
+            error.response?.data?.error || "Invalid reset code.";
+          setErrors({ resetCode: errorMessage });
+          toast({
+            title: "Error",
+            description: errorMessage,
+            variant: "destructive",
+          });
+        },
+      }
+    );
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateResetPassword()) return;
+
+    resetPasswordMutation.mutate(
+      { email: formData.email, newPassword: formData.newPassword },
+      {
+        onSuccess: () => {
+          toast({
+            title: "Password reset successful",
+            description: "You can now log in with your new password.",
+          });
+          resetDialog();
+        },
+        onError: (error: any) => {
+          const errorMessage =
+            error.response?.data?.error || "Failed to reset password.";
+          setErrors({ newPassword: errorMessage });
+          toast({
+            title: "Error",
+            description: errorMessage,
+            variant: "destructive",
+          });
+        },
+      }
+    );
+  };
+
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
   };
@@ -312,7 +474,10 @@ export function AuthDialog({
     setCurrentStep("auth");
     setActiveTab("login");
     setVerificationCode("");
+    setResetCode("");
     setUserEmail("");
+    setResetToken("");
+    setIsAgency(false);
     setErrors({});
     setFormData({
       firstName: "",
@@ -322,8 +487,244 @@ export function AuthDialog({
       phone: "",
       homeTown: "",
       confirmPassword: "",
+      agencyName: "",
+      agencyPhone: "",
+      newPassword: "",
+      confirmNewPassword: "",
     });
   };
+
+  // Forgot Password Step
+  if (currentStep === "forgot-password") {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-blue-100 rounded-full">
+              <Lock className="w-6 h-6 text-blue-600" />
+            </div>
+            <DialogTitle className="text-center">Forgot Password</DialogTitle>
+            <DialogDescription className="text-center">
+              Enter your email address and we'll send you a code to reset your
+              password.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleForgotPassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="forgotEmail">Email Address</Label>
+              <Input
+                id="forgotEmail"
+                name="email"
+                type="email"
+                placeholder="your@email.com"
+                value={formData.email}
+                onChange={handleChange}
+              />
+              {errors.email && (
+                <p className="text-sm text-red-500">{errors.email}</p>
+              )}
+            </div>
+
+            <DialogFooter className="flex-col space-y-2">
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={!formData.email || resendMutation.isPending}
+              >
+                {resendMutation.isPending ? "Sending..." : "Send Reset Code"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setCurrentStep("auth")}
+                className="w-full"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Login
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Verify Reset Code Step
+  if (currentStep === "verify-reset-code") {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-blue-100 rounded-full">
+              <Key className="w-6 h-6 text-blue-600" />
+            </div>
+            <DialogTitle className="text-center">Enter Reset Code</DialogTitle>
+            <DialogDescription className="text-center">
+              We've sent a reset code to{" "}
+              <span className="font-medium text-foreground">{userEmail}</span>
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleVerifyResetCode} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="resetCode">Reset Code</Label>
+              <Input
+                id="resetCode"
+                name="resetCode"
+                type="text"
+                placeholder="Enter reset code"
+                value={resetCode}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setResetCode(value);
+                  if (errors.resetCode) {
+                    setErrors((prev) => ({ ...prev, resetCode: "" }));
+                  }
+                }}
+                className="text-center text-lg tracking-widest"
+              />
+              {errors.resetCode && (
+                <p className="text-sm text-red-500">{errors.resetCode}</p>
+              )}
+            </div>
+
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Didn't receive the code? Check your spam folder or{" "}
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleForgotPassword({
+                      preventDefault: () => {},
+                    } as React.FormEvent)
+                  }
+                  // disabled={
+                  //   resendCoolDown > 0 || forgotPasswordMutation.isPending
+                  // }
+                  className="font-medium text-blue-600 hover:text-blue-500 disabled:text-gray-400"
+                >
+                  {/* {resendCoolDown > 0
+                    ? `resend in ${resendCoolDown}s`
+                    : forgotPasswordMutation.isPending
+                      ? "resending..."
+                      : "resend code"} */}
+                  resend code
+                </button>
+              </AlertDescription>
+            </Alert>
+
+            <DialogFooter className="flex-col space-y-2">
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={!resetCode || verifyEmailMutation.isPending}
+              >
+                {verifyEmailMutation.isPending ? "Verifying..." : "Verify Code"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setCurrentStep("forgot-password")}
+                className="w-full"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Reset Password Step
+  if (currentStep === "reset-password") {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-green-100 rounded-full">
+              <Lock className="w-6 h-6 text-green-600" />
+            </div>
+            <DialogTitle className="text-center">Set New Password</DialogTitle>
+            <DialogDescription className="text-center">
+              Enter your new password below.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleResetPassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">New Password</Label>
+              <Input
+                id="newPassword"
+                name="newPassword"
+                type="password"
+                placeholder="Enter new password"
+                value={formData.newPassword}
+                onChange={handleChange}
+              />
+              {errors.newPassword && (
+                <p className="text-sm text-red-500">{errors.newPassword}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmNewPassword">Confirm New Password</Label>
+              <Input
+                id="confirmNewPassword"
+                name="confirmNewPassword"
+                type="password"
+                placeholder="Confirm new password"
+                value={formData.confirmNewPassword}
+                onChange={handleChange}
+              />
+              {errors.confirmNewPassword && (
+                <p className="text-sm text-red-500">
+                  {errors.confirmNewPassword}
+                </p>
+              )}
+            </div>
+
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Your password must be at least 6 characters long and contain a
+                mix of letters and numbers for security.
+              </AlertDescription>
+            </Alert>
+
+            <DialogFooter className="flex-col space-y-2">
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={
+                  !formData.newPassword ||
+                  !formData.confirmNewPassword ||
+                  resetPasswordMutation.isPending
+                }
+              >
+                {resetPasswordMutation.isPending
+                  ? "Resetting Password..."
+                  : "Reset Password"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setCurrentStep("verify-reset-code")}
+                className="w-full"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   // Email Verification Step
   if (currentStep === "verify-email") {
     return (
@@ -541,6 +942,16 @@ export function AuthDialog({
                     <p className="text-sm text-red-500">{errors.password}</p>
                   )}
                 </div>
+
+                <div className="text-right">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep("forgot-password")}
+                    className="text-sm text-blue-600 hover:text-blue-500"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
               </div>
 
               <DialogFooter>
@@ -648,6 +1059,51 @@ export function AuthDialog({
                     onChange={handleChange}
                   />
                 </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isAgency"
+                    checked={isAgency}
+                    onCheckedChange={(checked) => setIsAgency(checked === true)}
+                  />
+                  <Label htmlFor="isAgency">Registering as an Agency</Label>
+                </div>
+
+                {isAgency && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="agencyName">Agency Name</Label>
+                      <Input
+                        id="agencyName"
+                        name="agencyName"
+                        placeholder="Awesome Travels"
+                        value={formData.agencyName}
+                        onChange={handleChange}
+                      />
+                      {errors.agencyName && (
+                        <p className="text-sm text-red-500">
+                          {errors.agencyName}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="agencyPhone">Agency Phone</Label>
+                      <Input
+                        id="agencyPhone"
+                        name="agencyPhone"
+                        placeholder="+1234567890"
+                        value={formData.agencyPhone}
+                        onChange={handleChange}
+                      />
+                      {errors.agencyPhone && (
+                        <p className="text-sm text-red-500">
+                          {errors.agencyPhone}
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
 
               <DialogFooter>

@@ -74,3 +74,34 @@ export async function executeQueryForRecordSets(
     throw err;
   }
 }
+
+type SQLParam = {
+  name: string;
+  value: any;
+  type?: any; // Optional sql type
+};
+
+export async function executeTVPQuery(
+  queryOrProc: string,
+  params: SQLParam[] = [],
+  isStoredProcedure = false
+) {
+  const pool = await getConnection();
+  const request = pool.request();
+
+  for (const param of params) {
+    if (param.type) {
+      request.input(param.name, param.type, param.value);
+    } else {
+      request.input(param.name, param.value);
+    }
+  }
+
+  const result = isStoredProcedure
+    ? await request.execute(queryOrProc)
+    : await request.query(queryOrProc);
+
+  return result.recordset;
+}
+
+export { sql }; // So you can use sql.Table and sql.Int in other files

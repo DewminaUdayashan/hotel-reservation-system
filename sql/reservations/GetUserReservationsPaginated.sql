@@ -17,7 +17,7 @@ BEGIN
         r.numberOfGuests AS guests,
         r.status,
 
-        -- Return 'paid' if invoice exists, otherwise 'unpaid'
+        -- Payment Status
         CASE 
             WHEN i.id IS NOT NULL THEN 'paid'
             ELSE 'unpaid'
@@ -29,14 +29,20 @@ BEGIN
         r.specialRequests,
         r.createdAt,
 
-        -- Additional fields
+        -- Room Details
         rm.name AS roomName,
-        rt.name AS roomType
+        rt.name AS roomType,
+
+        -- Block Booking Info (optional)
+        bbr.blockBookingId,
+        bb.totalAmount AS blockTotalAmount
 
     FROM Reservations r
     INNER JOIN Rooms rm ON r.roomId = rm.id
     INNER JOIN RoomTypes rt ON rm.type = rt.id
     LEFT JOIN Invoices i ON i.reservationId = r.id
+    LEFT JOIN BlockBookingReservations bbr ON bbr.reservationId = r.id
+    LEFT JOIN BlockBookings bb ON bb.id = bbr.blockBookingId
 
     WHERE r.customerId = @userId
     ORDER BY r.createdAt DESC

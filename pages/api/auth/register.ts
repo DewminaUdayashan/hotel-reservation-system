@@ -13,8 +13,17 @@ export default async function handler(
   const verificationToken = generateCode();
 
   try {
-    const { email, password, firstName, lastName, role, phone, homeTown } =
-      req.body;
+    const {
+      email,
+      password,
+      firstName,
+      lastName,
+      role,
+      phone,
+      homeTown,
+      agencyName,
+      agencyPhone,
+    } = req.body;
 
     if (!email || !password || !firstName || !lastName || !role || !phone) {
       return res.status(400).json({ error: "Missing required fields" });
@@ -24,7 +33,7 @@ export default async function handler(
     const passwordHash = await bcrypt.hash(password, 10);
 
     const result = await executeQuery(
-      "EXEC RegisterUser @Email, @PasswordHash, @FirstName, @LastName, @Role, @Phone, @HomeTown, @VerificationToken",
+      "EXEC RegisterUser @Email, @PasswordHash, @FirstName, @LastName, @Role, @Phone, @HomeTown, @VerificationToken, @AgencyName, @AgencyPhone",
       [
         { name: "Email", value: email },
         { name: "PasswordHash", value: passwordHash },
@@ -34,6 +43,8 @@ export default async function handler(
         { name: "Phone", value: phone },
         { name: "HomeTown", value: homeTown },
         { name: "VerificationToken", value: verificationToken },
+        { name: "AgencyName", value: agencyName || null },
+        { name: "AgencyPhone", value: agencyPhone || null },
       ]
     );
 

@@ -11,6 +11,8 @@ export type RegisterPayload = LoginPayload & {
   phone: string;
   homeTown?: string;
   role: UserRole;
+  agencyName?: string;
+  agencyPhone?: string;
 };
 
 export type LoginResponse = {

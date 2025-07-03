@@ -20,3 +20,17 @@ export const useLogin = () => {
     },
   });
 };
+
+export const useResetPassword = () => {
+  const axios = useAxios();
+
+  return useMutation({
+    mutationFn: async (data: { email: string; newPassword: string }) => {
+      const res = await axios.post("/auth/reset-password", data);
+      return res.data;
+    },
+    onError: (error) => {
+      console.error("Reset password error:", error);
+    },
+  });
+};

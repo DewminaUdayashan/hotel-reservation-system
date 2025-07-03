@@ -156,6 +156,28 @@ CREATE TABLE Reservations (
     FOREIGN KEY (roomId) REFERENCES Rooms(id)
 );
 
+ALTER TABLE Reservations
+ADD blockBookingId INT NULL;
+
+ALTER TABLE Reservations
+ADD CONSTRAINT FK_Reservations_BlockBookings FOREIGN KEY (blockBookingId)
+REFERENCES BlockBookings(id) ON DELETE SET NULL;
+
+CREATE TABLE BlockBookings (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    agencyId INT NOT NULL,
+    checkInDate DATE NOT NULL,
+    checkOutDate DATE NOT NULL,
+    numberOfGuests INT NOT NULL,
+    specialRequests NVARCHAR(500) NULL,
+    discountPercentage DECIMAL(5, 2) DEFAULT 0.00,
+    createdAt DATETIME DEFAULT GETDATE(),
+    status NVARCHAR(50) DEFAULT 'pending' CHECK (status IN (
+        'pending', 'confirmed', 'cancelled'
+    )),
+    FOREIGN KEY (agencyId) REFERENCES Agencies(id) ON DELETE CASCADE
+);
+
 CREATE TABLE ReservationPayments (
     id INT IDENTITY(1,1) PRIMARY KEY,
     reservationId INT NOT NULL UNIQUE,  -- One-to-one with reservation
